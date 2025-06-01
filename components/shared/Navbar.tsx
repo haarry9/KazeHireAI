@@ -11,7 +11,8 @@ import {
   User, 
   Briefcase, 
   Users, 
-  Calendar 
+  Calendar,
+  Sparkles 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,6 +35,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Dashboard', icon: Briefcase },
     { href: '/jobs', label: 'Jobs', icon: Briefcase },
     { href: '/candidates', label: 'Candidates', icon: Users },
+    { href: '/candidates/resume-match', label: 'Resume Matcher', icon: Sparkles },
     { href: '/interviews', label: 'Interviews', icon: Calendar },
   ] : [
     { href: '/interviews/assigned', label: 'My Interviews', icon: Calendar },
