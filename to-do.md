@@ -78,13 +78,13 @@ This is a comprehensive todo list for building the KazeHire AI MVP using Next.js
 
 ### Must (Core Requirements)
 
-- [ ]  Implement API routes: `POST /api/candidates`, `GET /api/candidates`, `GET /api/candidates/[id]`
-- [ ]  Implement frontend components: candidate upload form with resume (PDF), job selection, metadata; candidate list view; candidate profile page with resume preview
-- [ ]  Handle file uploads to Supabase Storage and store URLs in the database
+- [x]  Implement API routes: `POST /api/candidates`, `GET /api/candidates`, `GET /api/candidates/[id]`
+- [x]  Implement frontend components: candidate upload form with resume (PDF), job selection, metadata; candidate list view; candidate profile page with resume preview
+- [x]  Handle file uploads to Supabase Storage and store URLs in the database
 
 ### Should (Associated)
 
-- [ ]  Render LinkedIn and cover letter fields on the candidate profile
+- [x]  Render LinkedIn and cover letter fields on the candidate profile
 
 ---
 
@@ -175,8 +175,8 @@ This is a comprehensive todo list for building the KazeHire AI MVP using Next.js
 
 ## Progress Tracking
 
-**Current Phase:** Phase 5 - Candidate Management (HR)  
-**Overall Progress:** 23/53 tasks completed (43.4%)
+**Current Phase:** Phase 6 - Resume Matching AI (HR)  
+**Overall Progress:** 27/53 tasks completed (50.9%)
 
 ### Phase Completion Status:
 
@@ -184,7 +184,7 @@ This is a comprehensive todo list for building the KazeHire AI MVP using Next.js
 - [x]  Phase 2: Supabase Integration (6/6 tasks) ✅ **COMPLETED**
 - [x]  Phase 3: Authentication & Routing (6/6 tasks) ✅ **COMPLETED**
 - [x]  Phase 4: Job Management (HR) (4/4 tasks) ✅ **COMPLETED**
-- [ ]  Phase 5: Candidate Management (HR) (0/4 tasks)
+- [x]  Phase 5: Candidate Management (HR) (4/4 tasks) ✅ **COMPLETED**
 - [ ]  Phase 6: Resume Matching AI (HR) (0/4 tasks)
 - [ ]  Phase 7: Interview Scheduling & Management (HR) (0/3 tasks)
 - [ ]  Phase 8: Chat Summarization AI (HR) (0/4 tasks)
