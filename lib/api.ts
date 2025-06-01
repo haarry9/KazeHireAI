@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import { API_ROUTES } from "./constants";
 
 // Helper function for making API calls with authentication
@@ -7,11 +8,50 @@ export const apiCall = async (
 ): Promise<any> => {
   const url = endpoint.startsWith('http') ? endpoint : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${endpoint}`;
   
+  // Get the current session token with retry
+  let token: string | null = null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    token = session?.access_token || null;
+    
+    // If no token, try refreshing the session
+    if (!token) {
+      const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+      token = refreshedSession?.access_token || null;
+    }
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+  }
+  
+  console.log('API Call Debug:', {
+    endpoint,
+    hasToken: !!token,
+    tokenLength: token?.length,
+  });
+  
+  const defaultHeaders: Record<string, string> = {};
+  
+  // Only add Content-Type if not explicitly set to empty (for FormData)
+  if (!options.headers || !('Content-Type' in options.headers)) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
+  
+  // Add authorization header if token exists
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('No authentication token found for API request');
+    // Don't throw error here, let the API handle the 401
+  }
+  
+  // Filter out empty Content-Type headers
+  const finalHeaders = { ...defaultHeaders, ...options.headers };
+  if (finalHeaders['Content-Type'] === '') {
+    delete finalHeaders['Content-Type'];
+  }
+  
   const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers: finalHeaders,
     ...options,
   };
 
@@ -19,7 +59,14 @@ export const apiCall = async (
     const response = await fetch(url, defaultOptions);
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData.error,
+        endpoint,
+      });
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
     
     return await response.json();
@@ -48,7 +95,9 @@ export const candidatesAPI = {
   create: (candidateData: FormData) => apiCall(API_ROUTES.CANDIDATES, {
     method: 'POST',
     body: candidateData,
-    headers: {}, // Don't set Content-Type for FormData
+    headers: {
+      'Content-Type': '', // This will be removed to let browser set multipart boundary
+    },
   }),
   getById: (id: string) => apiCall(`${API_ROUTES.CANDIDATES}/${id}`),
   summarizeChat: (id: string, transcript: string) => apiCall(`${API_ROUTES.CANDIDATES}/${id}/summarize_chat`, {
@@ -81,6 +130,8 @@ export const resumeMatchAPI = {
   manualUpload: (jobDescription: string, resumes: FormData) => apiCall(`${API_ROUTES.RESUME_MATCH}/manual_upload`, {
     method: 'POST',
     body: resumes,
-    headers: {}, // Don't set Content-Type for FormData
+    headers: {
+      'Content-Type': '', // This will be removed to let browser set multipart boundary
+    },
   }),
 }; 

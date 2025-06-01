@@ -5,6 +5,10 @@ export interface AuthenticatedRequest extends NextApiRequest {
   user: User;
 }
 
+// Simple in-memory cache for user profiles (valid for 5 minutes)
+const userCache = new Map<string, { user: User; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // Middleware to verify user authentication and get user data
 export const withAuth = async (
   req: NextApiRequest,
@@ -27,7 +31,17 @@ export const withAuth = async (
       return { error: 'Invalid or expired token', status: 401 };
     }
 
-    // Get user profile from our users table
+    // Check cache first
+    const cached = userCache.get(authUser.id);
+    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+      // Check role if required
+      if (requiredRole && cached.user.role !== requiredRole) {
+        return { error: 'Insufficient permissions', status: 403 };
+      }
+      return { user: cached.user };
+    }
+
+    // Get user profile from our users table if not cached or expired
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .select('*')
@@ -37,6 +51,9 @@ export const withAuth = async (
     if (profileError || !userProfile) {
       return { error: 'User profile not found', status: 404 };
     }
+
+    // Cache the user profile
+    userCache.set(authUser.id, { user: userProfile, timestamp: Date.now() });
 
     // Check role if required
     if (requiredRole && userProfile.role !== requiredRole) {

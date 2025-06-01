@@ -1,28 +1,28 @@
-import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import ProtectedRoute from '../../components/shared/ProtectedRoute';
-import Navbar from '../../components/shared/Navbar';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
+import { useEffect } from 'react';
+import ProtectedRoute from '../../../components/shared/ProtectedRoute';
+import Navbar from '../../../components/shared/Navbar';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
 import { ArrowLeft, Save } from 'lucide-react';
-import { jobsAPI } from '../../lib/api';
-import { JobStatus } from '../../lib/supabase';
+import { jobsAPI } from '../../../lib/api';
+import { JobStatus } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
-interface CreateJobFormData {
+interface EditJobFormData {
   title: string;
   description: string;
   status: JobStatus;
 }
 
-export default function CreateJob() {
+export default function EditJob() {
   const router = useRouter();
+  const { id } = router.query;
   const queryClient = useQueryClient();
   
   const { 
@@ -30,51 +30,86 @@ export default function CreateJob() {
     handleSubmit, 
     formState: { errors },
     reset,
-    watch
-  } = useForm<CreateJobFormData>({
-    defaultValues: {
-      status: 'Active'
-    }
+    setValue
+  } = useForm<EditJobFormData>();
+
+  // Fetch current job data
+  const { data: jobResponse, isLoading: isLoadingJob } = useQuery({
+    queryKey: ['job', id],
+    queryFn: () => jobsAPI.getById(id as string),
+    enabled: !!id,
+    retry: 1,
   });
 
-  // Watch description field for character count
-  const description = watch('description', '');
+  const job = jobResponse?.data;
 
-  // Create job mutation
-  const createJobMutation = useMutation({
-    mutationFn: jobsAPI.create,
+  // Populate form with existing data
+  useEffect(() => {
+    if (job) {
+      setValue('title', job.title);
+      setValue('description', job.description);
+      setValue('status', job.status);
+    }
+  }, [job, setValue]);
+
+  // Update job mutation
+  const updateJobMutation = useMutation({
+    mutationFn: (data: EditJobFormData) => jobsAPI.update(id as string, data),
     onSuccess: (response) => {
-      toast.success('Job created successfully!');
-      // Invalidate jobs query to refresh the list
+      toast.success('Job updated successfully!');
+      // Invalidate job queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      // Redirect to jobs list
-      router.push('/jobs');
+      // Redirect to job detail page
+      router.push(`/jobs/${id}`);
     },
     onError: (error: any) => {
-      console.error('Job creation error:', error);
-      let errorMessage = 'Failed to create job';
-      
-      if (error?.message?.includes('401')) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (error?.message?.includes('403')) {
-        errorMessage = 'You do not have permission to create jobs.';
-      } else if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update job';
       toast.error(errorMessage);
     }
   });
 
-  const onSubmit = async (data: CreateJobFormData) => {
-    createJobMutation.mutate(data);
+  const onSubmit = async (data: EditJobFormData) => {
+    updateJobMutation.mutate(data);
   };
 
   const handleCancel = () => {
     router.back();
   };
+
+  if (isLoadingJob) {
+    return (
+      <ProtectedRoute allowedRoles={['HR']}>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!job) {
+    return (
+      <ProtectedRoute allowedRoles={['HR']}>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center py-8">
+              <p className="text-gray-500">Job not found</p>
+              <Button onClick={() => router.push('/jobs')} className="mt-4">
+                Back to Jobs
+              </Button>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute allowedRoles={['HR']}>
@@ -89,8 +124,8 @@ export default function CreateJob() {
                 Back
               </Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Create New Job</h1>
-            <p className="text-gray-600 mt-2">Add a new job posting to your recruitment pipeline</p>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Job</h1>
+            <p className="text-gray-600 mt-2">Update job posting details</p>
           </div>
 
           <Card>
@@ -146,17 +181,9 @@ export default function CreateJob() {
                     })}
                     className={errors.description ? 'border-red-500' : ''}
                   />
-                  <div className="flex justify-between items-center mt-1">
-                    {errors.description && (
-                      <p className="text-sm text-red-600">{errors.description.message}</p>
-                    )}
-                    <p className={`text-sm ml-auto ${
-                      description.length > 5000 ? 'text-red-600' : 
-                      description.length > 4500 ? 'text-yellow-600' : 'text-gray-500'
-                    }`}>
-                      {description.length}/5000 characters
-                    </p>
-                  </div>
+                  {errors.description && (
+                    <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
+                  )}
                 </div>
 
                 <div>
@@ -171,25 +198,25 @@ export default function CreateJob() {
                     <option value="Closed">Closed</option>
                   </select>
                   <p className="text-sm text-gray-500 mt-1">
-                    Active jobs are visible to potential candidates
+                    Change status to control job visibility
                   </p>
                 </div>
 
                 <div className="flex space-x-4 pt-4">
                   <Button
                     type="submit"
-                    disabled={createJobMutation.isPending}
+                    disabled={updateJobMutation.isPending}
                     className="flex-1 sm:flex-none"
                   >
-                    {createJobMutation.isPending ? (
+                    {updateJobMutation.isPending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Creating...
+                        Updating...
                       </>
                     ) : (
                       <>
                         <Save className="mr-2 h-4 w-4" />
-                        Create Job
+                        Update Job
                       </>
                     )}
                   </Button>
@@ -197,27 +224,13 @@ export default function CreateJob() {
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
-                    disabled={createJobMutation.isPending}
+                    disabled={updateJobMutation.isPending}
                     className="flex-1 sm:flex-none"
                   >
                     Cancel
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Help Text */}
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Tips for creating effective job postings:</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Use clear, specific job titles that candidates will search for</li>
-                <li>• Include key responsibilities, required skills, and qualifications</li>
-                <li>• Mention company culture, benefits, and growth opportunities</li>
-                <li>• Specify experience level and any required certifications</li>
-                <li>• Keep the description concise but comprehensive</li>
-              </ul>
             </CardContent>
           </Card>
         </div>
