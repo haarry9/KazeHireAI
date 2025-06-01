@@ -1,0 +1,220 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# AI Resume Matcher — Comprehensive Plan
+
+## Core Architecture Overview
+
+### Vision-Based Processing (Key Insight)
+
+- Convert PDFs to images using Node.js equivalent of `pdf2image`
+    
+- Send images directly to Gemini's vision model (no text extraction needed)
+    
+- Leverage multimodal capabilities for better accuracy and formatting preservation
+    
+
+### Chat Interface Pattern
+
+- Use `ai.models.generateContent()` as the primary method
+    
+- Pass `contents` as an array containing both text prompt and images
+    
+
+```js
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: [/* text + images array */],
+  config: { /* temperature, max_tokens, etc. */ }
+});
+```
+
+- Send combined message with text prompt + multiple images
+    
+- Configure with `temperature: 0.1` for consistent responses
+    
+
+### Message Structure for Both API Routes
+
+```js
+const contents = [
+  ranking_prompt_text,
+  image1,
+  image2,
+  image3,
+  // ... more images
+];
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash-001',
+  contents: contents,
+  config: {
+    temperature: 0.1,
+    maxOutputTokens: 2000
+  }
+});
+```
+
+---
+
+## Two API Route Implementation
+
+### 1. `/api/resume_match/existing_pool`
+
+**Flow:**
+
+- Receive `job_id` from request
+    
+- Query database for job description and associated candidates
+    
+- Download resume PDFs from Supabase Storage
+    
+- Convert each PDF to image (first page)
+    
+- Build prompt with candidate database IDs as mapping keys
+    
+- Send to Gemini with job description + candidate images
+    
+- Parse JSON response and return with database IDs intact
+    
+
+**Prompt Structure:**
+
+```txt
+Job Description: [description]
+
+Candidate Data:
+
+- Candidate ID: 123, Name: John Smith, Resume: [image1]
+- Candidate ID: 456, Name: Jane Doe, Resume: [image2]
+
+Use exact Candidate IDs in your JSON response.
+```
+
+### 2. `/api/resume_match/manual_upload`
+
+**Flow:**
+
+- Receive uploaded job description + 1-5 resume files
+    
+- Convert each resume PDF to image
+    
+- Assign temporary IDs (file_1, file_2, etc.) as mapping keys
+    
+- Send to Gemini with job description + resume images
+    
+- Parse JSON response with temporary IDs
+    
+- Return results (optionally store uploaded files for later candidate creation)
+    
+**Prompt Structure:**
+
+```txt
+Job Description: [uploaded description]
+
+Candidate Data:
+
+- Candidate ID: file_1, Name: resume1.pdf, Resume: [image1]
+- Candidate ID: file_2, Name: resume2.pdf, Resume: [image2]
+
+Use exact Candidate IDs in your JSON response.
+```
+
+---
+
+## Critical Mapping Solution
+
+### Database ID Preservation
+
+- Include actual database `candidate.id` in prompt for existing pool
+    
+- AI returns same ID in `candidate_id` field
+    
+- Enables direct interview scheduling using returned `candidate_id`
+    
+
+### File Tracking for Manual Upload
+
+- Use file index/name as temporary identifier
+    
+- Map back to uploaded files for candidate record creation
+    
+- When scheduling interview, first create candidate record, then create interview
+    
+
+---
+
+## Expected Response Structure
+
+```json
+{
+  "top_candidates": [
+    {
+      "candidate_id": "123",  // Database ID or file identifier
+      "candidate_name": "John Smith",
+      "fit_score": 85,
+      "strengths": ["skill1", "skill2", "skill3"],
+      "concerns": ["concern1"] or [],
+      "reasoning": "2-3 sentence explanation"
+    }
+  ]
+}
+```
+
+---
+
+## Technical Dependencies
+
+- `@google/genai` for AI integration
+    
+- PDF-to-image conversion library for Node.js
+    
+- Supabase client for file downloads and database queries
+    
+
+---
+
+## Error Handling Strategy
+
+- **PDF Conversion Failures**: Fallback error message
+    
+- **AI API Failures**: Return `422 Unprocessable Entity` with "AI processing failed"
+    
+- **Malformed JSON**: Validate structure and return error
+    
+- **File Upload Issues**: Handle size limits and format validation
+    
+
+---
+
+## Frontend Integration Points
+
+- Display results as cards with fit scores, strengths, concerns, reasoning
+    
+- "Schedule Interview" button on each card uses `candidate_id` from response
+    
+- Handle loading states during AI processing
+    
+- Show error toasts for failures
+    
+
+---
+
+## Key Success Factors
+
+1. **Reliable ID Mapping**: Ensures interview scheduling works seamlessly
+    
+2. **Vision-Based Processing**: Simpler and more accurate than text extraction
+    
+3. **Structured Prompting**: Forces consistent JSON responses from AI
+    
+4. **Dual Flow Support**: Handles both existing pool and manual upload scenarios
+    
+5. **Error Resilience**: Graceful handling of various failure modes
+    
+
+> This approach combines the simplicity of vision processing with robust ID mapping to solve the core challenge of connecting AI results back to actionable database operations.

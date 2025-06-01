@@ -127,9 +127,9 @@ export const resumeMatchAPI = {
     method: 'POST',
     body: JSON.stringify({ job_id: jobId, comments }),
   }),
-  manualUpload: (jobDescription: string, resumes: FormData) => apiCall(`${API_ROUTES.RESUME_MATCH}/manual_upload`, {
+  manualUpload: (formData: FormData) => apiCall(`${API_ROUTES.RESUME_MATCH}/manual_upload`, {
     method: 'POST',
-    body: resumes,
+    body: formData,
     headers: {
       'Content-Type': '', // This will be removed to let browser set multipart boundary
     },
