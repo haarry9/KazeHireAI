@@ -1,0 +1,152 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# KazeHire AI MVP Development Plan (MoSCoW + Phases)
+
+This document outlines the full MVP development roadmap for KazeHire AI using the MoSCoW prioritization framework, broken down into atomic, actionable tasks across phases. Completing all phases results in a working end-to-end V1.
+
+---
+
+## ✨ MoSCoW Legend
+
+- **Must**: Core MVP features
+- **Should**: Important, but not critical
+- **Could**: Optional enhancements
+- **Won't (Now)**: Explicitly excluded from MVP
+
+---
+
+## ✅ Phase 1: Environment & Tooling Setup
+
+- **Must**: Initialize a full-stack Next.js project with Tailwind CSS.
+- **Must**: Set up project structure for frontend and backend (API routes under `pages/api`).
+- **Must**: Install frontend libraries: `shadcn/ui`, `lucide-react`, `react-query`, `react-hook-form`, `framer-motion`.
+- **Must**: Install Supabase client: `@supabase/supabase-js`.
+- **Must**: Install Google AI SDK: `@google/genai`.
+- **Must**: Set up a shared GitHub repository and basic README with contribution guidelines.
+- **Should**: Set up code linting and formatter (e.g., ESLint, Prettier).
+- **Could**: Set up CI with GitHub Actions to run lint and type checks.
+- **Won't (Now)**: Full UI/UX design system setup beyond Tailwind configuration.
+
+---
+
+## ✅ Phase 2: Supabase Integration
+
+- **Must**: Create a Supabase project with schema: `users`, `jobs`, `candidates`, `interviews`.
+- **Must**: Set up Supabase Storage buckets for resumes and transcripts.
+- **Must**: Configure Supabase Auth for email/password sign-up and sign-in.
+- **Must**: Integrate Supabase with Next.js using `@supabase/supabase-js`.
+- **Must**: Test Supabase Auth from the frontend.
+- **Should**: Set up mock seed data using the Supabase SQL Editor.
+- **Could**: Implement basic access control in API routes (since RLS is disabled for MVP).
+- **Won't (Now)**: Create audit/history tables in Supabase.
+
+---
+
+## ✅ Phase 3: Authentication & Routing
+- **Must**: Implement frontend sign-up and sign-in forms using React Hook Form and Supabase Auth.
+- **Must**: Add role selection (HR or Interviewer) during sign-up, stored in Supabase user metadata or `users` table.
+- **Must**: Retrieve and validate JWT from Supabase Auth for protected routes.
+- **Must**: Implement route protection: HR redirected to `/dashboard`, Interviewer to `/interviews/assigned`.
+- **Must**: Add logout functionality using Supabase Auth.
+- **Should**: Implement a landing page based on the wireframe (hero section, CTA, visuals).
+- **Should**: Add role-based sidebar navigation.
+- **Could**: Add toast notifications for login errors and logout feedback.
+- **Won't (Now)**: Support social login (Google, GitHub, etc.).
+
+---
+
+## ✅ Phase 4: Job Management (HR)
+
+- **Must**: Implement API routes: `GET /api/jobs`, `POST /api/jobs`, `PATCH /api/jobs/[id]`.
+- **Must**: Implement frontend components: job list table with status filters, job creation form (title, description, status).
+- **Must**: Store job data in Supabase and link to the HR user.
+- **Should**: Add job editing functionality.
+- **Could**: Add sorting for jobs by creation date or status.
+- **Won't (Now)**: Implement job archiving or deletion.
+
+---
+
+## ✅ Phase 5: Candidate Management (HR)
+
+- **Must**: Implement API routes: `POST /api/candidates`, `GET /api/candidates`, `GET /api/candidates/[id]`.
+- **Must**: Implement frontend components: candidate upload form (with resume PDF), list view, profile page with resume preview.
+- **Must**: Handle file uploads to Supabase Storage and store URLs in the database.
+- **Should**: Render LinkedIn and cover letter fields on the candidate profile.
+- **Could**: Add search and sort functionality to the candidate table.
+- **Won't (Now)**: Support bulk candidate uploads.
+
+---
+
+## ✅ Phase 6: Resume Matching AI (HR)
+
+- **Must**: Implement API routes: `POST /api/resume_match/existing_pool`, `POST /api/resume_match/manual_upload`.
+- **Must**: Integrate `@google/genai` to process job descriptions and resumes, returning the top 5 candidates.
+- **Must**: Implement frontend components: Resume Matcher page with options for existing pool or manual upload, display results in cards.
+- **Should**: Add a "Schedule Interview" button directly from match results.
+- **Could**: Cache AI results for reusability.
+- **Won't (Now)**: Implement fine-tuned matching based on HR preferences.
+
+---
+
+## ✅ Phase 7: Interview Scheduling & Management (HR)
+
+- **Must**: Implement API routes: `POST /api/interviews/schedule`, `GET /api/interviews/[id]`.
+- **Must**: Implement frontend components: interview scheduling form (date/time, interviewer dropdown), interview list views for upcoming and past interviews.
+- **Should**: Display interviewer feedback and AI summary for past interviews.
+- **Could**: Add form validation for date/time logic.
+- **Won't (Now)**: Integrate with external calendars or meeting links.
+
+---
+
+## ✅ Phase 8: Chat Summarization AI (HR)
+
+- **Must**: Implement API route: `POST /api/candidates/[id]/summarize_chat`.
+- **Must**: Use `@google/genai` to extract availability, salary, interest, and summary from chat transcripts.
+- **Must**: Implement frontend components: upload transcript (text or PDF), display parsed output.
+- **Should**: Save extracted fields in the Supabase `candidates` table.
+- **Could**: Handle both PDF and text uploads for transcripts.
+- **Won't (Now)**: Allow manual editing of AI-generated summaries.
+
+---
+
+## ✅ Phase 9: Interview Feedback & Summary (Interviewer)
+
+- **Must**: Implement API routes: `POST /api/interviews/[id]/feedback`, `GET /api/interviews/assigned`.
+- **Must**: Implement frontend components: Interviewer dashboard (assigned interviews), feedback form with status dropdown and text box.
+- **Must**: Trigger `@google/genai` to generate summary and fit score from feedback.
+- **Must**: Store summary and raw feedback in the database.
+- **Should**: Prevent re-generation of the summary once approved.
+- **Could**: Add a preview panel before submitting feedback.
+- **Won't (Now)**: Allow viewing or editing past feedback after submission.
+
+---
+
+## ✅ Phase 10: Bias Detection AI (HR)
+
+- **Must**: Implement API route: `POST /api/interviews/[id]/bias_check`.
+- **Must**: Use `@google/genai` to detect biased terms in feedback and return structured results.
+- **Must**: Implement frontend components: "Run Bias Check" button with toast feedback, display results.
+- **Should**: Show results in a table or modal.
+- **Could**: Add a "No bias found" fallback view.
+- **Won't (Now)**: Implement auto-correction or redaction of biased terms.
+
+---
+
+## ✅ Phase 11: Final Polish & Deployment
+
+- **Must**: Deploy the full-stack Next.js application to Vercel or Netlify.
+- **Must**: Set up environment variables for Supabase and Gemini API in the deployment platform.
+- **Must**: Test full user journeys for both HR and Interviewer roles.
+- **Should**: Add 404, loading, and error pages.
+- **Should**: Add minimal favicon, title tags, and basic SEO.
+- **Could**: Set up CI/CD pipelines with GitHub Actions or Vercel.
+- **Won't (Now)**: Implement full observability (logs/metrics).
+
+---
+
+> ✅ Once all phases are completed, KazeHire AI V1 will be fully functional across HR and Interviewer flows with integrated AI features, database persistence, and end-to-end role-based user journeys.
+
+---

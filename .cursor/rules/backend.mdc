@@ -1,0 +1,384 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# KazeHire AI - Backend Architecture Specification
+
+## Table of Contents
+
+1. Overview
+2. Tech Stack
+3. Folder Structure
+4. API Design & Endpoints
+5. Database Schema
+6. AI Integration Layer
+7. Authentication & Authorization
+8. Security Measures
+9. Third-Party Services
+10. Error Handling Strategy
+11. Deployment & Environment Configuration
+
+---
+
+## Overview
+
+This backend powers **KazeHire AI**, an AI-driven recruitment platform supporting two user roles: HR and Interviewer. It manages job postings, candidate management, interview scheduling, and AI-powered features like summarization, resume matching, and bias detection.
+
+The backend is implemented using **Next.js API routes** under `pages/api`, integrating seamlessly with the frontend in a full-stack Next.js application. We leverage **Supabase** for database management, authentication, and object storage, relying on its built-in Auth system without custom authentication logic. For the Minimum Viable Product (MVP), Row-Level Security (RLS) in Supabase is disabled to avoid complexity and issues.
+
+---
+
+## Tech Stack
+
+- **Language**: JavaScript (Node.js)
+- **Framework**: Next.js (API Routes, Pages Router)
+- **Database**: Supabase PostgreSQL
+- **Client Library**: `@supabase/supabase-js`
+- **Auth**: Supabase Auth (JWT-based)
+- **AI Provider**: Gemini (via `@google/genai` package)
+- **Object Storage**: Supabase Storage (for resumes and transcripts)
+
+---
+
+## Folder Structure
+
+The backend logic resides entirely within `pages/api`, following Next.js Pages Router conventions. Below is the simplified structure within the Next.js project:
+
+```plaintext
+kaze-hire/
+├── pages/
+│   ├── api/
+│   │   ├── jobs/
+│   │   │   ├── index.js         # GET/POST /api/jobs
+│   │   │   └── [id].js         # GET/PATCH /api/jobs/[id]
+│   │   ├── candidates/
+│   │   │   ├── index.js        # GET/POST /api/candidates
+│   │   │   ├── [id].js         # GET /api/candidates/[id]
+│   │   │   └── [id]/
+│   │   │       └── summarize_chat.js  # POST /api/candidates/[id]/summarize_chat
+│   │   ├── resume_match/
+│   │   │   ├── existing_pool.js  # POST /api/resume_match/existing_pool
+│   │   │   └── manual_upload.js  # POST /api/resume_match/manual_upload
+│   │   ├── interviews/
+│   │   │   ├── assigned.js     # GET /api/interviews/assigned
+│   │   │   ├── schedule.js     # POST /api/interviews/schedule
+│   │   │   ├── [id].js         # GET /api/interviews/[id]
+│   │   │   ├── [id]/
+│   │   │       ├── feedback.js  # POST /api/interviews/[id]/feedback
+│   │   │       └── bias_check.js  # POST /api/interviews/[id]/bias_check
+│   │   └── ai/
+│   │       └── index.js        # Core AI logic (if needed as a standalone endpoint)
+├── components/                     # Frontend components
+├── utils/                          # Helper functions (e.g., Supabase client, AI utils)
+├── public/                         # Static assets
+├── package.json                    # Dependencies
+└── README.md
+```
+
+**Notes**:
+
+- Each `.js` file in `pages/api` corresponds to an API endpoint.
+- Dynamic routes (e.g., `[id].js`) handle parameterized requests.
+- Helper utilities (e.g., Supabase client, AI logic) are stored in `utils/`.
+
+---
+
+## API Design & Endpoints
+
+All endpoints are implemented as Next.js API routes under `pages/api`. Below are the specifications:
+
+### Jobs
+
+- **`GET /api/jobs`**
+    - File: `pages/api/jobs/index.js`
+    - Description: List all jobs (HR only).
+- **`POST /api/jobs`**
+    - File: `pages/api/jobs/index.js`
+    - Description: Create a job (HR only).
+- **`GET /api/jobs/[id]`**
+    - File: `pages/api/jobs/[id].js`
+    - Description: Retrieve job details (HR or Interviewer for assigned interviews).
+- **`PATCH /api/jobs/[id]`**
+    - File: `pages/api/jobs/[id].js`
+    - Description: Update job status (Active, Paused, Closed; HR only).
+
+### Candidates
+
+- **`GET /api/candidates`**
+    - File: `pages/api/candidates/index.js`
+    - Description: List all candidates (HR only).
+- **`POST /api/candidates`**
+    - File: `pages/api/candidates/index.js`
+    - Description: Add a candidate with PDF upload (HR only).
+    - Request (multipart/form-data):
+        
+        ```json
+        {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "phone": "123-456-7890",
+          "cover_letter": "Cover letter text",
+          "linkedin": "https://linkedin.com/johndoe",
+          "resume": "<file.pdf>",
+          "job_id": 1
+        }
+        ```
+        
+- **`GET /api/candidates/[id]`**
+    - File: `pages/api/candidates/[id].js`
+    - Description: Retrieve candidate details (HR or Interviewer for assigned interviews).
+- **`POST /api/candidates/[id]/summarize_chat`**
+    - File: `pages/api/candidates/[id]/summarize_chat.js`
+    - Description: Upload chat transcript and generate AI summary (HR only).
+
+### Resume Matcher
+
+- **`POST /api/resume_match/existing_pool`**
+    - File: `pages/api/resume_match/existing_pool.js`
+    - Description: Match a job ID to the top 5 candidates from the pool (HR only).
+- **`POST /api/resume_match/manual_upload`**
+    - File: `pages/api/resume_match/manual_upload.js`
+    - Description: Upload a job description and 1–5 resumes, return top 5 ranked (HR only).
+
+### Interviews
+
+- **`GET /api/interviews/assigned`**
+    - File: `pages/api/interviews/assigned.js`
+    - Description: List interviews assigned to the logged-in Interviewer (filtered by `interviewer_id` from JWT).
+- **`POST /api/interviews/schedule`**
+    - File: `pages/api/interviews/schedule.js`
+    - Description: Schedule an interview (HR only).
+- **`GET /api/interviews/[id]`**
+    - File: `pages/api/interviews/[id].js`
+    - Description: View interview details (HR or Interviewer for assigned interviews).
+- **`POST /api/interviews/[id]/feedback`**
+    - File: `pages/api/interviews/[id]/feedback.js`
+    - Description: Submit feedback, generate AI summary, and set status (Interviewer only).
+    - Request:
+        
+        ```json
+        {
+          "feedback": "Strong technical skills.",
+          "status": "Completed"
+        }
+        ```
+        
+    - Response:
+        
+        ```json
+        {
+          "success": true,
+          "fit_score": 4,
+          "summary": "Candidate showed strong technical skills."
+        }
+        ```
+        
+- **`POST /api/interviews/[id]/bias_check`**
+    - File: `pages/api/interviews/[id]/bias_check.js`
+    - Description: Run bias detection on raw feedback (HR only).
+
+---
+
+## Database Schema
+
+The schema is managed by Supabase PostgreSQL and remains unchanged except for the addition of the `name` field in the `users` table. Row-Level Security (RLS) is disabled for the MVP to avoid complexity.
+
+### `users`
+
+|Column|Type|Description|
+|---|---|---|
+|id|uuid|Primary key|
+|name|text|User display name (not null)|
+|email|text|User email|
+|role|enum|HR or INTERVIEWER|
+|created_at|timestamp|Creation timestamp|
+### `jobs`
+
+|Column|Type|Description|
+|---|---|---|
+|id|serial|Primary key|
+|title|text|Job title|
+|description|text|Job description|
+|status|enum|Active, Paused, Closed|
+|created_by|uuid|FK to users|
+|created_at|timestamp|Creation timestamp|
+
+### `candidates`
+
+|Column|Type|Description|
+|---|---|---|
+|id|serial|Primary key|
+|name|text|Candidate name|
+|email|text|Candidate email|
+|phone|text|Candidate phone|
+|resume_url|text|URL to resume in storage|
+|cover_letter|text|Cover letter text|
+|linkedin|text|LinkedIn URL|
+|created_by|uuid|FK to users|
+|start_date|date|Availability start (nullable)|
+|end_date|date|Availability end (nullable)|
+|min_salary|numeric|Min salary (nullable)|
+|max_salary|numeric|Max salary (nullable)|
+|interest_level|integer|Interest level 1–5 (nullable)|
+|summary_text|text|AI-generated summary|
+|created_at|timestamp|Creation timestamp|
+
+### `interviews`
+
+|Column|Type|Description|
+|---|---|---|
+|id|serial|Primary key|
+|candidate_id|serial|FK to candidates|
+|job_id|serial|FK to jobs|
+|interviewer_id|uuid|FK to users|
+|scheduled_time|timestamp|Interview time|
+|status|enum|Scheduled, Completed|
+|raw_feedback|text|Interviewer feedback|
+|ai_summary|text|AI-generated summary|
+|created_at|timestamp|Creation timestamp|
+
+### `ai_logs` (optional)
+
+|Column|Type|Description|
+|---|---|---|
+|id|serial|Primary key|
+|task_type|text|e.g., summarize, match|
+|prompt_sent|text|Prompt sent to AI|
+|result|text|AI response|
+|status|text|Success/Failure|
+|created_at|timestamp|Creation timestamp|
+
+---
+
+## AI Integration Layer
+
+The AI layer uses the **Gemini API** via the `@google/genai` package in JavaScript, integrated into Next.js API routes.
+
+### Dependencies
+
+- Install via:
+    
+    ```bash
+    npm install @google/genai @supabase/supabase-js
+    ```
+    
+- **package.json** (sample):
+    
+    ```json
+    {
+      "dependencies": {
+        "@google/genai": "^1.0.0",
+        "@supabase/supabase-js": "^2.0.0",
+        "next": "^14.0.0",
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0"
+      }
+    }
+    ```
+    
+
+### Environment
+
+- `.env.local`:
+    
+    ```
+    GEMINI_API_KEY=your-gemini-api-key
+    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+    ```
+    
+
+### Core Logic
+
+- Location: `utils/ai.js` (or inline in API routes)
+- Tasks:
+    1. **Summarize Chat Transcript**:
+        - Prompt: `"Extract availability dates, salary range, interest level (1–5), and a summary from the following chat transcript: [transcript]"`
+        - Output: `{"start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "min_salary": 50000, "max_salary": 60000, "interest_level": 4, "summary_text": "Candidate is eager and flexible."}`
+    2. **Match Resumes (Existing Pool)**:
+        - Prompt: `"Rank the top 5 candidates from the existing pool for the following job description: [job_description]. Candidate data: [candidate_data]"`
+        - Output: `{"top_candidates": [{"candidate_id": "string", "candidate_name": "string", "fit_score": 85, "strengths": ["skill1", "skill2"], "concerns": ["concern1"], "reasoning": "Explanation."}]}`
+    3. **Match Resumes (Manual Upload)**:
+        - Prompt: `"Rank the following resumes for the given job description: [job_description]. Resumes: [resume_data]"`
+        - Output: Same as above.
+    4. **Generate Interview Summary**:
+        - Prompt: `"Summarize the following interview feedback and provide a fit score (1–5): [feedback]"`
+        - Output: `{"fit_score": 4, "summary": "Candidate showed strong technical skills but needs improvement in communication."}`
+    5. **Detect Bias**:
+        - Prompt: `"Identify any biased terms in the following feedback: [feedback]"`
+        - Output: `{"flags": [{"term": "aggressive", "justification": "May imply gender bias"}]}`
+- Results are stored directly in the Supabase database.
+
+---
+
+## Authentication & Authorization
+
+- **Provider**: Supabase Auth via `@supabase/supabase-js`
+- **Implementation**: Authentication is handled client-side using Supabase’s auth UI or direct calls to Supabase Auth (e.g., `signUp`, `signInWithPassword`). No custom authentication endpoints are implemented in `pages/api`.
+- **JWT**: Passed in `Authorization: Bearer <token>` header to API routes.
+- **Validation**: Each API route uses `@supabase/supabase-js` to verify the JWT and extract `user.id` and `user.role`.
+- **Role-Based Access**:
+    - **HR**: Access to all endpoints except Interviewer-only ones.
+    - **Interviewer**: Limited to assigned interviews (filtered by `interviewer_id` matching the logged-in user).
+- **Note**: Row-Level Security (RLS) is disabled for the MVP. Role checks are enforced in API route logic.
+
+---
+
+## Security Measures
+
+- **JWT Validation**: Handled by Supabase Auth in each API route.
+- **HTTPS**: Enforced by the deployment platform (e.g., Vercel).
+- **MVP Scope**: No rate limiting or advanced security features are included.
+
+---
+
+## Third-Party Services
+
+- **Supabase**: Authentication, Database, Storage (via `@supabase/supabase-js`)
+- **Gemini AI**: AI features (via `@google/genai`)
+
+---
+
+## Error Handling Strategy
+
+- **Format**:
+    
+    ```json
+    {
+      "success": false,
+      "error": "Reason for failure"
+    }
+    ```
+    
+- **AI Failures**: Return `422 Unprocessable Entity` with `"AI processing failed"`.
+- **Upload Failures**: Return `400 Bad Request` with validation details.
+- **MVP Scope**: No detailed AI error logging beyond basic responses.
+
+---
+
+## Deployment & Environment Configuration
+
+### Environment Variables
+
+- `.env.local`:
+    
+    ```
+    GEMINI_API_KEY=your-gemini-api-key
+    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+    ```
+    
+
+### File Upload and Storage
+
+- **Handler**: `@supabase/supabase-js` uploads files to Supabase Storage.
+- **Storage**: Resumes and transcripts are stored in Supabase Storage; URLs are saved in `candidates.resume_url`.
+
+### Deployment Targets
+
+- **Platform**: Vercel (recommended for Next.js) or Netlify.
+- **Database/Auth**: Supabase.
+- **CI/CD**: GitHub Actions or Vercel deploy hooks.
+
+---

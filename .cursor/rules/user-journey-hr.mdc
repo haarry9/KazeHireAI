@@ -1,0 +1,175 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 🧭 HR User Journey — KazeHire AI
+
+## 🎭 User Role: HR
+
+**Permissions**:
+
+- Full access to Jobs, Candidates, Interviews.
+- Can view and trigger AI Resume Matcher and AI Chat Summarizer.
+- Can schedule interviews and view feedback summaries.
+
+## 🪜 Step-by-Step Journey
+
+### 1. Sign Up or Sign In (Supabase Auth)
+
+- HR lands on the landing page and clicks “Join.”
+- **Sign Up**:
+    - Form collects: Name (display name, required), Email (required), Password (required), Role (HR or Interviewer, dropdown).
+    - Supabase Auth handles sign-up via `supabase.auth.signUp`, storing name and role in user metadata or `users` table.
+    - On success: Redirect to HR Dashboard (`/dashboard`).
+    - On failure: Show toast (“Invalid email or password” or “Email already registered”).
+- **Sign In**:
+    - Enters email and password; Supabase Auth handles via `supabase.auth.signInWithPassword`.
+    - Frontend retrieves user role from `user.user_metadata.role` or `users` table, confirms “HR,” and redirects to HR Dashboard.
+    - On failure: Show toast (“Invalid email or password”).
+
+### 2. HR Dashboard
+
+- **Purpose**: Snapshot of job openings and interview statuses.
+- View list of all job postings created by this HR in a sortable table (columns: Title, Status, Created At).
+- “Create Job” button to initiate job creation.
+- Navigation options to “Candidates” or “Interviews” tabs via Sidebar.
+
+### 3. Create a Job
+
+- **From**: Dashboard → “Create Job” button.
+- **Form Fields**:
+    - Job Title (required, max 100 chars).
+    - Description (required, max 5000 chars).
+    - Status (optional, default: Active; enum: Active, Paused, Closed).
+- **Validation**: Ensure Title and Description are filled.
+- **After Submit**:
+    - Job created via `POST /api/jobs` and stored in Supabase.
+    - Show success toast (“Job created”).
+    - Redirect to Job Detail Page.
+
+### 4. Upload Candidate Resumes
+
+- **From**: Candidates Tab or Job Detail Page → “Upload Candidates”.
+- **Options**:
+    - **From Existing Pool**: Select candidates already uploaded for a job.
+    - **Manual Upload**:
+        - Upload resume (PDF only, optional `.pdf` extension check).
+        - Attach to a specific job (dropdown, sends `job_id` to API).
+        - **Metadata Fields**:
+            - Name (required).
+            - Email (required).
+            - Phone (optional).
+            - Cover Letter (optional).
+            - LinkedIn (optional).
+        - **API Call**: `POST /api/candidates`
+            
+            ```json
+            // Request (multipart/form-data)
+            {
+              "name": "John Doe",
+              "email": "john@example.com",
+              "phone": "123-456-7890",
+              "cover_letter": "Cover letter text",
+              "linkedin": "https://linkedin.com/johndoe",
+              "resume": "<file.pdf>",
+              "job_id": 1
+            }
+            // Response
+            {
+              "success": true,
+              "id": 1
+            }
+            ```
+            
+        - **Validation**: Ensure Name, Email, and resume are provided.
+- **Outcome**:
+    - Supabase stores PDF in Storage, saves URL in `candidates.resume_url`.
+    - Candidate record created in Supabase with metadata.
+    - Show success toast (“Candidate uploaded”) or error toast (“Invalid file format” or “Missing required fields”).
+
+### 5. Trigger AI Resume Matcher
+
+- **From**: Job Detail Page → “Run Resume Matcher”.
+- **Flow**:
+    - Two modes:
+        - **Existing Pool**: Select job ID, optional comments, call `POST /api/resume_match/existing_pool`.
+        - **Manual Upload**: Upload job description and 1–5 resumes, call `POST /api/resume_match/manual_upload`.
+    - API sends Job Description + candidate resumes to Gemini API (via `@google/genai`).
+    - Returns top 5 candidates in card view:
+        - Name.
+        - Fit Score (e.g., “85/100”).
+        - Strengths (bullet list).
+        - Concerns (bullet list or “None”).
+        - Reasoning (paragraph).
+        - Schedule Interview button.
+- **Outcome**: Show success toast (“Resume matching completed”).
+### 6. Schedule Interview
+
+- **Triggered From**: Resume Matcher Result Page or Candidate Profile Page.
+- **Form**:
+    - Interviewer (required, dropdown of users with Interviewer role).
+    - Date/Time (required, manual entry).
+- **Outcome**:
+    - Interview created via `POST /api/interviews/schedule` in Supabase.
+    - Candidate status updated.
+    - Interviewer gains access to the interview entry.
+    - Show success toast (“Interview scheduled”).
+
+### 7. Candidate Profile Page
+
+- **Accessed From**: Anywhere a candidate is referenced (e.g., Candidates Tab, Resume Matcher).
+- **Components**:
+    - Full Resume (PDF viewer).
+    - Candidate Details (Name, Email, Phone, LinkedIn, Cover Letter).
+    - Chat Transcript Viewer (readonly textarea, fallback: “No transcript uploaded”).
+    - AI Summary Panel:
+        - Button to upload transcript (text or PDF) and run AI Chat Summary.
+        - **AI Chat Summary Flow**:
+            - Transcript sent to Gemini API via `POST /api/candidates/[id]/summarize_chat`.
+            - Returns: `start_date`, `end_date`, `min_salary`, `max_salary`, `interest_level`, `summary_text`.
+            - Display with labels (e.g., “Availability: Nov 1 - Nov 30, 2025”).
+            - Stored in Supabase `candidates` table.
+            - Show success toast (“Summary generated”).
+
+### 8. Interview Management
+
+- **From**: Sidebar → “Interviews”.
+- **Table**: All scheduled interviews (columns: Candidate Name, Job, Interviewer, Status, Date).
+- **For Completed Interviews**:
+    - Show raw feedback from Interviewer.
+    - “Run Bias Check” button:
+        - Triggers `POST /api/interviews/[id]/bias_check`.
+        - Displays `flags` (e.g., “Term: aggressive, Reason: May imply gender bias”) or “No bias detected”.
+        - Show success toast (“Bias check completed”).
+
+### 9. Toast Notifications & UX Feedback
+
+- **Show Toasts For**:
+    - Success: Job creation, candidate upload, AI task completion, interview scheduling.
+    - Error: Supabase Auth failures (“Invalid email or password”), form validation (“Please fill all required fields”), API errors (`{"success": false, "error": "Reason"}`).
+
+## 🧱 Backend Events Triggered in HR Flow
+
+|Action|Backend Responsibilities|
+|---|---|
+|Sign Up/Sign In|Supabase Auth handles user creation/login|
+|Create Job|Save job entry in DB via `/api/jobs`|
+|Upload Candidate|Store file in Supabase Storage + metadata in DB via `/api/candidates`|
+|Trigger AI Matcher|Compose prompt + send to Gemini via `/api/resume_match/*`|
+|Schedule Interview|Save interview record via `/api/interviews/schedule`|
+|Generate Chat Summary|Compose prompt + send to Gemini via `/api/candidates/[id]/summarize_chat`|
+|Run Bias Check|Compose prompt + send to Gemini via `/api/interviews/[id]/bias_check`|
+
+## 🛑 MVP Boundaries / No-Features
+
+- No email notifications to interviewers.
+- No calendar integrations.
+- No role/permission management UI.
+- No job sharing/public job posts.
+- No duplicate candidate detection.
+- No analytics dashboard.
+- No automated resume metadata parsing.
+- No Interview Type field.
+
+---

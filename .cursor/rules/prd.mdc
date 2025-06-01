@@ -1,0 +1,313 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# KazeHire AI - MVP Product Requirements Document
+
+## 1. Overview
+
+KazeHire AI is an MVP-stage, AI-powered recruitment web application designed to streamline the hiring process for HR personnel and interviewers. It uses the Google Gemini AI API (via the `@google/genai` package) for AI-based features like candidate summarization, resume matching, and bias detection.
+
+This MVP prioritizes core features: job and candidate management, AI-assisted evaluation, and role-based workflows for HRs and Interviewers. The application is built as a full-stack Next.js application (using JavaScript) for both frontend and backend logic, with Supabase handling authentication, database, and storage services.
+
+---
+
+## 2. User Roles & Permissions
+
+### HR
+
+- Can manage jobs, candidates, and interviews
+- Can view and use AI-generated summaries
+- Can run bias detection on interview feedback
+- Can assign interviews to interviewers
+
+### Interviewer
+
+- Can only view assigned interviews
+- Can write post-interview feedback
+- Can generate AI summaries of feedback (viewable only in summarized form)
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 Authentication
+
+- Supabase-based authentication with email/password sign-up and sign-in flow (OAuth support optional)
+- For new users: Collect name (display name), email, and password during sign-up; select role (HR or Interviewer), stored in Supabase user metadata or a custom profiles table; role is fixed and cannot be changed
+- Existing users can log in directly via Supabase authentication with email and password
+- Authentication is managed entirely by Supabase, with session handling integrated into Next.js server-side logic
+
+### 3.2 HR Functionalities
+
+#### 3.2.1 Job Management
+
+- Create/Edit job postings (title, description, status: Active/Paused/Closed)
+- View list of all job postings with filters by status
+
+#### 3.2.2 Candidate Management
+
+- Add new candidate with the following fields:
+    - Name (Text)
+    - Email (Text)
+    - Phone (Text)
+    - Resume (PDF Upload)
+    - Cover Letter (Optional)
+    - LinkedIn Profile URL (Optional)
+- View candidate list with search/sort options
+- Candidate Profile View:
+    - Candidate details
+    - Uploaded resume and documents
+    - **Candidate Chat Summarizer Button**:
+        - Opens dialog to upload chat transcript (text or PDF)
+        - Calls Gemini AI API (via Next.js API route using `@google/genai`) with a prompt and transcript to extract:
+            - Availability Dates (start_date and end_date, format: YYYY-MM-DD)
+            - Salary Expectations (min_salary and max_salary, numeric)
+            - Interest Level (integer 1–5)
+            - Brief Summary (text)
+        - Stores the AI's output in the candidate's profile as separate fields: start_date, end_date, min_salary, max_salary, interest_level, summary_text
+        - If the AI fails to extract any field, it is stored as Null
+        - If the AI call fails, show an error message and allow the user to retry once or twice
+
+#### 3.2.3 Resume Matcher AI
+
+##### A. From Existing Pool
+
+- Select job from list
+    
+- Optionally provide comments
+    
+- Calls Gemini AI API (via Next.js API route using `@google/genai`) with a prompt, job description, and candidate pool data (resumes converted to images or text) to shortlist the top 5 candidate profiles
+    
+- Prompt structure (example):
+    
+    ```
+    You are an expert HR manager tasked with ranking candidates based on their resumes and a job description.
+    Job Description: [Job Description]
+    Candidate Data: [Candidate resumes or extracted data]
+    Respond with ONLY this JSON structure:
+    {
+      "top_candidates": [
+        {
+          "candidate_id": "string",
+          "candidate_name": "string",
+          "fit_score": number (1-100),
+          "strengths": ["strength1", "strength2", "strength3"],
+          "concerns": ["concern1", "concern2"] or [],
+          "reasoning": "2-3 sentence explanation of ranking"
+        }
+      ]
+    }
+    Order candidates from best to worst fit. Include up to 5 candidates.
+    ```
+    
+- Display result as list of profiles with candidate_name, fit_score, strengths, concerns, and reasoning
+    
+    - Each profile includes **Schedule Interview** button
+
+##### B. Manual Upload
+
+- Upload one Job Description
+- Upload 1–5 candidate resumes
+- Calls Gemini AI API (via Next.js API route using `@google/genai`) with a prompt, job description, and uploaded resumes (converted to images or text) to return a sorted ranking
+- Uses the same prompt structure as above, including all uploaded candidates in the ranking
+- Display result as list of profiles with candidate_name, fit_score, strengths, concerns, and reasoning
+    - Each profile includes **Schedule Interview** button
+
+##### Scheduling Interview
+
+- HR selects date/time
+- Selects Interviewer from list
+- Saves record in interview table with link to job and candidate
+
+#### 3.2.4 Interview Management
+
+- List all interviews (past and upcoming)
+- View for each interview:
+    - Candidate Name
+    - JD Title
+    - Interviewer Assigned
+    - Interviewer raw text feedback/comment
+    - AI-generated summary
+    - **Bias Detector Button**:
+        - Calls Gemini AI API (via Next.js API route using `@google/genai`) with a prompt and the interviewer's comment to detect biased terms
+            
+        - Prompt structure (example):
+            
+            ```
+            You are an expert HR manager tasked with detecting bias in interview feedback.
+            Feedback: [Feedback text]
+            Respond with ONLY this JSON structure:
+            {
+              "flags": [
+                {
+                  "term": "string",
+                  "justification": "string"
+                }
+              ]
+            }
+            Identify biased terms (e.g., age, gender-related) and provide justification.
+            ```
+            
+        - Displays flags to HR (does not auto-modify text)
+            
+
+### 3.3 Interviewer Functionalities
+
+#### 3.3.1 Assigned Interviews
+
+- List of all interviews assigned to this interviewer
+- View candidate profile and JD for each
+
+#### 3.3.2 Post-Interview Workflow
+
+- Mark interview as Completed
+- Write free-form feedback/comment
+- Click **Generate Summary**:
+    - Calls Gemini AI API (via Next.js API route using `@google/genai`) with a prompt and feedback text to produce:
+        
+        - Fit Score (1–5)
+        - AI-generated summary text
+    - Prompt structure (example):
+        
+        ```
+        You are an expert HR manager tasked with summarizing interview feedback.
+        Feedback: [Feedback text]
+        Respond with ONLY this JSON structure:
+        {
+          "fit_score": number (1-5),
+          "summary": "string"
+        }
+        Provide a concise summary and a fit score based on the feedback.
+        ```
+        
+    - On confirm: Store both raw feedback and AI summary
+        
+    - The summary is final and cannot be edited or regenerated
+        
+    - Interviewer only sees summary
+        
+    - If the AI call fails, show an error message and allow the user to retry once or twice
+        
+
+---
+
+## 4. User Flows
+
+### 4.1 HR User Flow
+
+1. Visit Landing Page → Click Join → For new users: Select HR → Sign Up (provide name, email, password); for existing users: Log in
+2. On Dashboard:
+    - Create Jobs
+    - Add Candidates
+    - View/Edit Candidate Profiles
+    - Run Chat Summarizer inside Candidate Profile
+    - Run Resume Matcher AI (From Pool or Manual)
+    - Schedule Interviews
+    - View Interview Reports
+    - Run Bias Detection on Completed Interviews
+
+### 4.2 Interviewer User Flow
+
+1. Visit Landing Page → Click Join → For new users: Select Interviewer → Sign Up (provide name, email, password); for existing users: Log in
+2. On Dashboard:
+    - View Assigned Interviews
+    - Review Candidate Profile and JD
+    - Mark Interview Completed
+    - Write Feedback → Generate Summary → Confirm
+
+---
+
+## 5. Data Flow
+
+### Entities
+
+- **Users**: ID, Role, Name, Email, Password (managed by Supabase Auth, with name and role in user metadata or profiles table)
+- **Jobs**: ID, Title, Description, Status
+- **Candidates**: ID, Name, Email, Phone, Resume, Cover Letter, LinkedIn, start_date, end_date, min_salary, max_salary, interest_level, summary_text
+- **Interviews**: ID, JobID, CandidateID, InterviewerID, Date/Time, Status, Feedback, AI Summary
+
+### AI Calls (via Gemini AI API)
+
+- **Candidate Chat Summarizer**:
+    - Input: Chat Transcript + prompt (handled via Next.js API route)
+    - Output: start_date (YYYY-MM-DD, nullable), end_date (YYYY-MM-DD, nullable), min_salary (numeric, nullable), max_salary (numeric, nullable), interest_level (integer 1–5, nullable), summary_text (text, nullable)
+- **Resume Matcher**:
+    - Input: Job Description + resumes or candidate pool + prompt (handled via Next.js API route)
+    - Output: JSON with top_candidates (candidate_id, candidate_name, fit_score, strengths, concerns, reasoning)
+- **Interview Summary**:
+    - Input: Raw feedback text + prompt (handled via Next.js API route)
+    - Output: JSON with fit_score (1–5) and summary
+- **Bias Detector**:
+    - Input: Feedback text + prompt (handled via Next.js API route)
+    - Output: JSON with flags (term, justification)
+
+---
+
+## 6. UI Wireframe-Level Description (Text-Based)
+
+### Landing Page
+
+- Join Button → For new users: Select Role → Sign Up (collect name, email, password); for existing users: Log in
+
+### HR Dashboard
+
+- Sidebar:
+    - Jobs
+    - Candidates
+    - Interview Management
+- Jobs Page:
+    - List view with Create Job button
+- Candidates Page:
+    - Table/List of candidates
+    - Click → Candidate Detail Page:
+        - Resume Preview
+        - Candidate Info
+        - Chat Summarizer (button + file upload)
+- Resume Matcher Page:
+    - Existing Pool: Job dropdown + optional comment + Match button
+    - Manual Upload: Upload JD + 1–5 resumes
+    - Matched List:
+        - Each profile shows candidate_name, fit_score, strengths, concerns, reasoning
+        - **Schedule Interview** Button
+- Interview Management:
+    - Past Interviews List:
+        - View details: Candidate, JD, Interviewer, Feedback, Summary
+        - Bias Detector Button (triggers AI)
+    - Upcoming Interviews List
+
+### Interviewer Dashboard
+
+- List of assigned interviews
+- Click into interview → Show Candidate Info + JD
+- Mark Completed → Show feedback box → Generate Summary Button → Confirm
+
+---
+
+## 7. Assumptions & Exclusions
+
+### Assumptions
+
+- All users are manually onboarded (no admin panel in MVP)
+- Supabase handles authentication and session management natively, integrated with Next.js server-side logic
+- User name and role are stored in Supabase user metadata or a custom profiles table
+- Files (resumes, transcripts) are stored in Supabase Storage
+- AI responses are stored as is, with no validation
+- Minimal error handling for AI calls; users can retry once or twice if the AI call fails
+- All feedback and AI data stored in Supabase database
+- Next.js API routes or server components handle all server-side logic, including Gemini API calls and Supabase queries
+- Gemini AI API is accessed via the `@google/genai` package for all AI functionalities
+- Toast-based UI feedback for actions
+- Design is web-first and mobile-responsive, with a basic functional interface
+
+### Exclusions
+
+- Calendar integrations or notifications
+- Email alerts
+- Public job links or external applicant portal
+- Audit history or version control
+- Diversity analytics (beyond bias detection)
+- Super Admin role or permissions management
+
+---

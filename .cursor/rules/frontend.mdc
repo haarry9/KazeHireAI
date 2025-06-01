@@ -1,0 +1,363 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 📘 Frontend Plan for KazeHire AI
+
+## 🧩 Tech Stack Overview
+
+|Feature|Tool/Library|
+|---|---|
+|Framework|[Next.js](mdc:https:/nextjs.org) (Pages Router)|
+|Styling|[Tailwind CSS](mdc:https:/tailwindcss.com)|
+|Icons|[Lucide Icons](mdc:https:/lucide.dev)|
+|Component Primitives|shadcn/ui|
+|Form Handling|[React Hook Form](mdc:https:/react-hook-form.com)|
+|Animations|Framer Motion|
+|State Management / Fetching|React Query|
+|Authentication|[Supabase Auth](mdc:https:/supabase.com/docs/guides/auth) (client-side)|
+|Fonts|Inter|
+|Build & Deployment|Vercel (primary) or Netlify|
+
+---
+
+## 🎨 Design System
+
+### 1. Colors
+
+> **Inspired by:** [RecruitCRM.io](mdc:https:/recruitcrm.io)
+
+|Purpose|Color Hex|
+|---|---|
+|Primary|`#1A73E8`|
+|Secondary|`#00BFA5`|
+|Background|`#F9FAFB`|
+|Surface|`#FFFFFF`|
+|Border|`#E5E7EB`|
+|Text Primary|`#1F2937`|
+|Text Muted|`#6B7280`|
+|Error|`#EF4444`|
+
+### 2. Typography
+
+|Element|Font|Style|
+|---|---|---|
+|Primary Font|Inter|Sans-serif, clean, modern|
+|Weights Used|400, 500, 600, 700||
+|Sizes|12px - 32px, based on Tailwind scale||
+
+### 3. Spacing System
+
+> **Base Unit:** `4px`
+
+|Unit|Pixel|
+|---|---|
+|xs|4px|
+|sm|8px|
+|md|16px|
+|lg|24px|
+|xl|32px|
+|2xl|40px|
+
+---
+
+## 🧱 UI Patterns & Components
+
+Built using `shadcn/ui`
+
+- **Navigation Bar**: Sticky top nav with app title, user name (from Supabase Auth), role display (HR or Interviewer), and sign-out button.
+- **Sidebar**: Contextual navigation based on user role.
+- **Dashboard Cards**: Role-specific content summaries (e.g., job count, candidate count).
+- **Tables**: Paginated and sortable (Jobs, Candidates, Interviews).
+- **Forms**: Job creation, candidate upload, feedback input (using React Hook Form with minimal validation).
+- **Buttons**: Primary/Secondary styles with loading state.
+- **Toasts**: For success/error/status notifications (e.g., job created, AI summary done, Supabase Auth errors).
+- **Modals**: For confirmation dialogs and large form views, with Framer Motion fade and slide-in animations.
+
+---
+
+## 🔄 Data Fetching & State Management
+
+Using React Query (TanStack Query)
+
+- Efficient client-side caching and background refresh.
+- Handles loading, error, and stale states.
+- Used for:
+    - Fetching job/candidate/interview lists via Next.js API routes.
+    - Uploading candidate resumes to Supabase Storage.
+    - Triggering and displaying AI summary/match results from Gemini API (via API routes).
+
+### API Integration
+
+All API calls are made to Next.js API routes under `/api`, as defined in the backend specification. Authentication is handled client-side using Supabase Auth, with JWT tokens passed in the `Authorization: Bearer <token>` header for protected routes. Below are example request/response formats for key endpoints:
+
+- **`GET /api/jobs`**
+    
+    - Description: List all jobs (HR only).
+    - Response:
+        
+        ```json
+        [
+          {
+            "id": 1,
+            "title": "Software Engineer",
+            "description": "Develop web apps",
+            "status": "Active",
+            "created_by": "uuid",
+            "created_at": "2025-05-31T12:00:00Z"
+          }
+        ]
+        ```
+        
+- **`POST /api/candidates`**
+    
+    - Description: Add a candidate with PDF upload (HR only).
+    - Request (multipart/form-data):
+        
+        ```json
+        {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "phone": "123-456-7890",
+          "cover_letter": "Cover letter text",
+          "linkedin": "https://linkedin.com/johndoe",
+          "resume": "<file.pdf>",
+          "job_id": 1
+        }
+        ```
+        
+- **`POST /api/candidates/[id]/summarize_chat`**
+    
+    - Description: Upload chat transcript and generate AI summary (HR only).
+    - Request:
+        
+        ```json
+        {
+          "transcript": "Candidate available Nov 2025, salary $50k-$60k"
+        }
+        ```
+        
+    - Response:
+        
+        ```json
+        {
+          "start_date": "2025-11-01",
+          "end_date": "2025-11-30",
+          "min_salary": 50000,
+          "max_salary": 60000,
+          "interest_level": 4,
+          "summary_text": "Candidate is eager."
+        }
+        ```
+        
+- **`POST /api/resume_match/existing_pool`**
+    
+    - Description: Match top 5 candidates for a job (HR only).
+    - Request:
+        
+        ```json
+        {
+          "job_id": 1,
+          "comments": "Optional comments"
+        }
+        ```
+        
+    - Response:
+        
+        ```json
+        {
+          "top_candidates": [
+            {
+              "candidate_id": "1",
+              "candidate_name": "John Doe",
+              "fit_score": 85,
+              "strengths": ["skill1", "skill2"],
+              "concerns": ["concern1"],
+              "reasoning": "Strong match due to relevant skills."
+            }
+          ]
+        }
+        ```
+        
+- **`POST /api/interviews/[id]/feedback`**
+    
+    - Description: Submit feedback and generate AI summary (Interviewer only).
+    - Request:
+        
+        ```json
+        {
+          "feedback": "Strong technical skills.",
+          "status": "Completed"
+        }
+        ```
+        
+    - Response:
+        
+        ```json
+        {
+          "success": true,
+          "fit_score": 4,
+          "summary": "Candidate showed strong technical skills."
+        }
+        ```
+        
+- **`POST /api/interviews/[id]/bias_check`**
+    
+    - Description: Run bias detection on feedback (HR only).
+    - Response:
+        
+        ```json
+        {
+          "flags": [
+            {
+              "term": "aggressive",
+              "justification": "May imply gender bias"
+            }
+          ]
+        }
+        ```
+        
+
+**Authentication**:
+
+- Handled client-side using `@supabase/supabase-js` (e.g., `supabase.auth.signUp`, `supabase.auth.signInWithPassword`).
+- Sign-up collects `name`, `email`, `password`, and `role` (HR or Interviewer), stored in Supabase user metadata or `users` table.
+- JWT tokens are retrieved from Supabase Auth and included in API requests for protected routes.
+
+---
+
+## ⚙️ Functional Areas & Views
+
+### HR Role
+
+- **Jobs Dashboard**
+    - View all jobs in a sortable table (columns: Title, Status, Created At).
+    - Create job form (fields: Title, Description, Status).
+- **Candidate Manager**
+    - Upload new candidates (form fields: Name, Email, Phone, Resume (PDF), Cover Letter, LinkedIn, Job dropdown).
+    - View candidate pool in a sortable table (columns: Name, Email, Phone).
+    - Trigger AI Resume Matcher to display top 5 candidates in card view:
+        - Card fields: Name, Fit Score (e.g., “85/100”), Strengths (bullet list), Concerns (bullet list or “None”), Reasoning (paragraph), Schedule Interview button.
+    - Schedule Interview form (fields: Date/Time, Interviewer; validation: both required).
+- **Interview Management**
+    - Table of scheduled interviews (columns: Candidate, Job, Interviewer, Date/Time).
+    - View interview details with raw feedback, AI summary, and bias check button.
+- **Candidate Profile Page**
+    - Display resume (PDF viewer).
+    - Candidate details (Name, Email, Phone, LinkedIn, Cover Letter).
+    - Chat Transcript viewer (readonly textarea, fallback: “No transcript uploaded”).
+    - AI Summary panel with button to upload transcript and generate summary (displays start_date, end_date, min_salary, max_salary, interest_level, summary_text).
+
+### Interviewer Role
+- **Interview List**
+    - Table of assigned interviews (columns: Candidate, Job, Date/Time).
+- **Submit Feedback**
+    - Form for raw feedback (textarea, required) and status dropdown (Scheduled, Completed; default: Completed).
+    - Button to generate AI summary (displays Fit Score and Summary for approval, no editing).
+- **View Past Feedbacks**
+    - Table of completed interviews with AI summary only (Fit Score, Summary); raw feedback is not displayed.
+
+### Role-Based Access
+
+- On page load, retrieve user role from Supabase Auth session (`user.user_metadata.role` or `users` table).
+- Redirect unauthorized access:
+    - HR: Can access all views except Interviewer-specific ones.
+    - Interviewer: Redirected to `/interviews/assigned` for unauthorized routes.
+
+---
+
+## 📐 Layout Guidelines
+
+- **Mobile-first responsive design**
+    - Use Tailwind responsive classes (`sm:`, `md:`, `lg:`).
+- **Desktop**: 2-column layout (Sidebar + Main Content).
+- **Mobile**: 1-column layout with hamburger nav.
+- **Animations** (using Framer Motion):
+    - Modal open/close: Fade and slide-in effect.
+    - Button click: Scale or hover effect.
+    - Page transitions: Subtle fade effect.
+
+---
+
+## 📁 Folder Structure
+
+Frontend content is organized under Next.js Pages Router conventions:
+
+```bash
+kaze-hire/
+├── pages/
+│   ├── api/                    # Backend API routes (see backend README)
+│   ├── _app.js                 # Custom App component
+│   ├── _document.js            # Custom Document
+│   ├── index.js                # Landing page
+│   ├── dashboard/              # Main dashboard
+│   │   └── index.js
+│   ├── jobs/
+│   │   ├── index.js            # Jobs list
+│   │   └── create.js           # Create job form
+│   ├── candidates/
+│   │   ├── index.js            # Candidate list
+│   │   ├── create.js           # Candidate upload form
+│   │   ├── [id].js             # Candidate profile
+│   │   └── resume-match.js     # Resume matcher view
+│   ├── interviews/
+│   │   ├── assigned.js         # Assigned interviews (Interviewer)
+│   │   ├── index.js            # Interview management (HR)
+│   │   └── [id].js             # Interview details
+├── components/
+│   ├── ui/                     # shadcn UI components
+│   ├── shared/                 # Navbar, Sidebar, Toast, etc.
+│   ├── jobs/                   # Job-related components
+│   ├── candidates/             # Candidate-related components
+│   ├── interviews/             # Interview-related components
+├── hooks/                      # Custom React hooks
+├── lib/
+│   ├── supabase.js             # Supabase client setup
+│   ├── api.js                  # API client utilities
+│   ├── constants.js            # Constants (e.g., API routes)
+├── styles/
+│   └── globals.css             # Global styles (Tailwind)
+├── types/                      # TypeScript types (if used)
+├── public/                     # Static assets (e.g., favicon)
+├── package.json
+└── README.md
+```
+
+---
+
+## 📦 Fonts & Icons
+
+- **Fonts**: Inter (via Google Fonts)
+- **Icons**: [Lucide Icons](mdc:https:/lucide.dev)
+    
+    ```tsx
+    import { Briefcase, Calendar, User } from "lucide-react";
+    ```
+    
+
+---
+
+## 🛠️ Additional Notes
+
+- **Form Validation**: Minimal validation to ensure functionality:
+    - Job Creation: Title (required), Description (required).
+    - Candidate Upload: Name (required), Email (required), Resume (PDF, optional `.pdf` extension check), Job (required, dropdown).
+    - Feedback: Feedback text (required).
+    - Schedule Interview: Interviewer (required), Date/Time (required).
+- **File Uploads**: Resumes are PDF only; implement a simple `.pdf` extension check client-side if feasible.
+- **Authentication**: Handled via Supabase Auth client-side. Example sign-up:
+    
+    ```javascript
+    import { supabase } from '@/lib/supabase';
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name, role } },
+    });
+    ```
+    
+- **Error Handling**: Display API errors (e.g., `{"success": false, "error": "Invalid file format"}`) and Supabase Auth errors (e.g., `{"error": "Invalid email or password"}`) as toasts using shadcn/ui.
+- **Supabase Integration**: Use `@supabase/supabase-js` for auth, database queries, and storage uploads, with Row-Level Security (RLS) disabled for the MVP.
+
+---

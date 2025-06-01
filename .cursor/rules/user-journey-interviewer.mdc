@@ -1,0 +1,108 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 🧭 Interviewer User Journey — KazeHire AI
+
+## 🎭 User Role: Interviewer
+
+**Permissions**:
+
+- Can only access interviews where `interviewer_id` matches their logged-in user ID (from Supabase Auth).
+- View candidate details and job ID for assigned interviews.
+- Submit feedback (raw + AI-generated summary).
+- No access to other interviewers’ data or HR-specific functionality.
+
+## 🪜 Step-by-Step Journey
+
+### 1. Sign Up or Sign In (Supabase Auth)
+
+- **Sign Up**:
+    - Interviewer lands on the landing page and clicks “Join.”
+    - Form collects: Name (display name, required), Email (required), Password (required), Role (HR or Interviewer, dropdown).
+    - Supabase Auth handles sign-up via `supabase.auth.signUp`, storing name and role in user metadata or `users` table.
+    - On success: Redirect to Interviewer Dashboard (`/interviews/assigned`).
+    - On failure: Show toast (“Invalid email or password” or “Email already registered”).
+- **Sign In**:
+    - Enters email and password; Supabase Auth handles via `supabase.auth.signInWithPassword`.
+    - Frontend retrieves user role from `user.user_metadata.role` or `users` table, confirms “Interviewer,” and redirects to Interviewer Dashboard.
+    - On failure: Show toast (“Invalid email or password”).
+
+### 2. Interviewer Dashboard
+
+- **Overview**: Central hub for managing assigned interviews.
+- **Sections**:
+    - **Upcoming Interviews**: Sorted by date.
+    - **Processed Interviews**: Completed interviews (top 5).
+- **Status Tags**: `Active`, `Completed`.
+- **Table Columns**:
+    - Candidate Name.
+    - Job Title.
+    - Interview Date.
+    - “Open” button.
+- **API Call**: `GET /api/interviews/`
+    - Returns only interviews where `interviewer_id` matches the logged-in user’s ID (from Supabase Auth JWT).
+- **Outcome**: Show error toast on failure (“Failed to load interviews”).
+### 3. View Interview Details
+
+- **From**: Clicking “Open” on the dashboard.
+- **Details Page**:
+    - **Candidate Information**:
+        - Name, Email (readonly).
+        - Resume viewer (PDF from Supabase Storage, `candidates.resume_url`).
+    - **Job Details**: Description (rich-text viewer).
+    - **Interview Details**: Date/Time, Status (Scheduled, Completed).
+- **API Call**: `GET /api/interviews/[id]`
+- **Access Control**: Redirect to `/interviews/assigned` if accessing unauthorized interviews (enforced by API route via `interviewer_id`).
+- **Outcome**: Show error toast on failure (“Failed to load interview details”).
+
+### 4. Submit Feedback
+
+- **From**: Interview Details page (for Scheduled interviews).
+- **Form**:
+    - Raw Feedback (textarea, required).
+    - Status (dropdown: Scheduled, Completed; default: Completed).
+- **Generate AI Summary**:
+    - Click “Generate Summary” to send raw feedback + Job Description + resume to Gemini via `POST /api/interviews/[id]/feedback`.
+    - Returns: `fit_score` (1–5), `summary` (text).
+    - Display for approval (preview, no editing).
+- **Outcome**: Show success toast (“Summary generated”) or error toast (“Failed to generate summary”).
+
+### 5. Submit & Lock Feedback
+
+- **From**: Click “Submit” after approving AI Summary.
+- **Outcome**:
+    - Raw feedback, AI Summary (`fit_score`, `summary`), and status saved in Supabase via `POST /api/interviews/[id]/feedback`.
+    - Editing disabled post-submission.
+    - Post-submission, Interviewer sees only AI Summary (Fit Score, Summary); raw feedback visible to HR only.
+    - Show success toast (“Feedback submitted”) or error toast (“Failed to submit feedback”).
+
+### 6. Toast Notifications & UX Feedback
+
+- **Show Toasts For**:
+    - Success: AI summary generation (“Summary generated”), feedback submission (“Feedback submitted”).
+    - Error: Supabase Auth failures (“Invalid email or password”), form validation (“Feedback required”), API errors (`{"success": false, "error": "Reason"}`), data loading failures (“Failed to load interviews”).
+
+## 🧱 Backend Events Triggered in Interviewer Flow
+
+|Action|Backend Responsibilities|
+|---|---|
+|Sign Up/Sign In|Supabase Auth handles user creation/login|
+|View Interview|Fetch interview + candidate + job description via `/api/interviews/[id]`|
+|Submit Feedback|Store raw feedback via `/api/interviews/[id]/feedback`|
+|Generate AI Summary|Prompt Gemini with raw feedback + context via `/api/interviews/[id]/feedback`|
+|Submit Final|Save AI result, update status via `/api/interviews/[id]/feedback`|
+
+## 🛑 MVP Boundaries / No-Features
+
+- No interview rescheduling/canceling by Interviewer.
+- No viewing feedback of other interviews.
+- No editing feedback after submission.
+- No in-app chat or communication with HR.
+- No email notifications or reminders.
+- No performance analytics or history.
+- No Interview Type field.
+- No bias detection for Interviewer (HR-only feature).
+
+---
