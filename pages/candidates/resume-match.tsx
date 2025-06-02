@@ -19,7 +19,7 @@ export default function ResumeMatch() {
   
   // Manual upload state
   const [jobDescription, setJobDescription] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
   // Results state
   const [matchResults, setMatchResults] = useState<ResumeMatchResult[]>([]);
@@ -88,13 +88,13 @@ export default function ResumeMatch() {
       return;
     }
 
-    if (!selectedFiles || selectedFiles.length === 0) {
-      toast.error('Please select at least one resume file');
+    if (selectedFiles.length === 0) {
+      toast.error('Please select at least 2 resume files');
       return;
     }
 
-    if (selectedFiles.length > 5) {
-      toast.error('Maximum 5 resume files allowed');
+    if (selectedFiles.length < 2) {
+      toast.error('Minimum 2 resume files required');
       return;
     }
 
@@ -103,7 +103,7 @@ export default function ResumeMatch() {
     formData.append('job_description', jobDescription);
     
     // Add all selected files
-    Array.from(selectedFiles).forEach((file) => {
+    selectedFiles.forEach((file) => {
       formData.append('resumes', file);
     });
 
@@ -111,13 +111,41 @@ export default function ResumeMatch() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 5) {
-      toast.error('Maximum 5 files allowed');
-      e.target.value = ''; // Reset
-      return;
+    const newFiles = e.target.files;
+    if (!newFiles || newFiles.length === 0) return;
+
+    const newFilesArray = Array.from(newFiles);
+    
+    // Add new files to existing ones, avoiding duplicates
+    const updatedFiles = [...selectedFiles];
+    
+    newFilesArray.forEach((file) => {
+      // Check if file already exists (by name and size)
+      const existingFile = updatedFiles.find(
+        existing => existing.name === file.name && existing.size === file.size
+      );
+      if (!existingFile) {
+        updatedFiles.push(file);
+      }
+    });
+    
+    setSelectedFiles(updatedFiles);
+    
+    // Reset the file input value so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles(selectedFiles.filter((_, index) => index !== indexToRemove));
+  };
+
+  const clearAllFiles = () => {
+    setSelectedFiles([]);
+    // Reset the file input
+    const fileInput = document.getElementById('resume-files') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
     }
-    setSelectedFiles(files);
   };
 
   const isLoading = existingPoolMutation.isPending || manualUploadMutation.isPending;
@@ -241,8 +269,11 @@ export default function ResumeMatch() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Resumes (1-5 PDFs)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Resumes (Minimum 2 PDFs, Maximum 10)
+                    </label>
                     <input
+                      id="resume-files"
                       type="file"
                       multiple
                       accept=".pdf"
@@ -250,17 +281,69 @@ export default function ResumeMatch() {
                       disabled={isLoading}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                     />
+                    
+                    {/* File List Display */}
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            Selected Files ({selectedFiles.length})
+                          </p>
+                          <button
+                            type="button"
+                            onClick={clearAllFiles}
+                            className="text-sm text-red-600 hover:text-red-800"
+                            disabled={isLoading}
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="space-y-1">
+                          {selectedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-700 truncate flex-1">
+                                {file.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="ml-2 text-red-600 hover:text-red-800"
+                                disabled={isLoading}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {selectedFiles.length < 2 && (
+                          <p className="text-sm text-orange-600 mt-2">
+                            ⚠️ Please select at least 2 resume files
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
                     <p className="text-sm text-gray-500 mt-1">
-                      {selectedFiles ? `${selectedFiles.length} file(s) selected` : 'Choose Files No file chosen'}
+                      {selectedFiles.length > 0 
+                        ? `${selectedFiles.length} file(s) selected` 
+                        : 'Choose files - No files chosen'
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-blue-800 text-sm">
+                      <strong>Manual Upload:</strong> This processes uploaded resumes using AI text extraction 
+                      and ranking without saving anything to the database.
                     </p>
                   </div>
                   
                   <Button 
                     className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={!jobDescription.trim() || !selectedFiles || selectedFiles.length === 0 || isLoading}
+                    disabled={!jobDescription.trim() || selectedFiles.length < 2 || isLoading}
                     onClick={handleManualUploadMatch}
                   >
-                    {isLoading ? 'AI is processing...' : 'Upload & Match'}
+                    {isLoading ? 'AI is processing...' : `Upload & Match ${selectedFiles.length} Resumes`}
                   </Button>
                 </CardContent>
               </Card>

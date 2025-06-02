@@ -23,20 +23,9 @@ export const apiCall = async (
     console.error('Error getting auth token:', error);
   }
   
-  console.log('API Call Debug:', {
-    endpoint,
-    hasToken: !!token,
-    tokenLength: token?.length,
-  });
-  
   const defaultHeaders: Record<string, string> = {};
   
-  // Only add Content-Type if not explicitly set to empty (for FormData)
-  if (!options.headers || !('Content-Type' in options.headers)) {
-    defaultHeaders['Content-Type'] = 'application/json';
-  }
-  
-  // Add authorization header if token exists
+  // Add authorization header if token exists (ALWAYS add if token is available)
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   } else {
@@ -44,11 +33,36 @@ export const apiCall = async (
     // Don't throw error here, let the API handle the 401
   }
   
-  // Filter out empty Content-Type headers
-  const finalHeaders = { ...defaultHeaders, ...options.headers };
-  if (finalHeaders['Content-Type'] === '') {
-    delete finalHeaders['Content-Type'];
+  // Handle Content-Type based on whether it's explicitly set
+  const incomingHeaders = options.headers as Record<string, string> || {};
+  const hasContentTypeSet = 'Content-Type' in incomingHeaders;
+  const isEmptyContentType = hasContentTypeSet && incomingHeaders['Content-Type'] === '';
+  
+  // Only set default Content-Type if not explicitly set and not empty string (FormData case)
+  if (!hasContentTypeSet) {
+    defaultHeaders['Content-Type'] = 'application/json';
   }
+  
+  // Merge headers, but exclude empty Content-Type (for FormData)
+  const finalHeaders = { ...defaultHeaders };
+  Object.entries(incomingHeaders).forEach(([key, value]) => {
+    if (key === 'Content-Type' && value === '') {
+      // Skip empty Content-Type - let browser set multipart boundary for FormData
+      return;
+    }
+    finalHeaders[key] = value;
+  });
+  
+  console.log('API Call Debug:', {
+    endpoint,
+    hasToken: !!token,
+    tokenLength: token?.length,
+    method: options.method || 'GET',
+    hasBody: !!options.body,
+    bodyType: options.body?.constructor?.name || 'none',
+    finalHeaders: Object.keys(finalHeaders),
+    authHeaderPresent: !!finalHeaders['Authorization']
+  });
   
   const defaultOptions: RequestInit = {
     headers: finalHeaders,
