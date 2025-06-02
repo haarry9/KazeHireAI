@@ -18,7 +18,7 @@ export async function callGeminiForResumeMatch(prompt, images = []) {
     const contents = [prompt, ...images];
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-001',
+      model: 'gemini-2.0-flash',
       contents: contents,
       config: {
         temperature: 0.1,

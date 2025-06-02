@@ -5,6 +5,8 @@ import { Candidate } from '@/lib/supabase';
 import Link from 'next/link';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
+import ChatSummarizer from '../../components/candidates/ChatSummarizer';
+import { User, Mail, Phone, Linkedin, Calendar, DollarSign, Star, FileText, ArrowLeft } from 'lucide-react';
 
 export default function CandidateProfile() {
   const router = useRouter();
@@ -122,164 +124,191 @@ export default function CandidateProfile() {
         <Navbar />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Candidate Profile</h1>
-              <p className="text-gray-600 mt-2">View detailed candidate information</p>
-            </div>
-            <Link href="/candidates">
-              <button className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                Back to Candidates
-              </button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Candidate Information */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Candidate Information</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
-                  <p className="text-lg font-medium text-gray-900">{candidate.name}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                  <p className="text-gray-900">{candidate.email}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
-                  <p className="text-gray-900">{candidate.phone || 'Not provided'}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">LinkedIn</label>
-                  {candidate.linkedin ? (
-                    <a 
-                      href={candidate.linkedin} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
-                    >
-                      {candidate.linkedin}
-                    </a>
-                  ) : (
-                    <p className="text-gray-900">Not provided</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Job Position</label>
-                  <p className="text-gray-900">
-                    {(candidate as Candidate & { jobs?: { title: string } }).jobs?.title || 'No job assigned'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Applied Date</label>
-                  <p className="text-gray-900">{formatDate(candidate.created_at)}</p>
-                </div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Link href="/candidates">
+                <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{candidate.name}</h1>
+                <p className="text-gray-600 mt-1">Candidate Profile</p>
               </div>
             </div>
-
-            {/* Resume */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Resume</h2>
-              
-              {candidate.resume_url ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-600">Resume file uploaded</p>
-                    <a 
-                      href={candidate.resume_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
-                    >
-                      Download PDF
-                    </a>
-                  </div>
-                  
-                  <div className="border border-gray-300 rounded-lg overflow-hidden">
-                    <iframe
-                      src={candidate.resume_url}
-                      className="w-full h-96"
-                      title="Resume Preview"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">No resume uploaded</p>
-              )}
-            </div>
           </div>
 
-          {/* Additional Information */}
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Cover Letter */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Cover Letter</h2>
-              {candidate.cover_letter ? (
-                <div className="prose max-w-none">
-                  <p className="text-gray-700 whitespace-pre-wrap">{candidate.cover_letter}</p>
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">No cover letter provided</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Left Column - Candidate Information */}
+            <div className="xl:col-span-1 space-y-6">
+              {/* Basic Information */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <User className="w-5 h-5 text-blue-600" />
+                  Contact Information
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium text-gray-900">{candidate.email}</p>
+                    </div>
+                  </div>
 
-            {/* AI Summary & Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">AI Summary & Details</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Availability</label>
-                  <p className="text-gray-900">
-                    {candidate.start_date || candidate.end_date 
-                      ? `${formatDate(candidate.start_date)} - ${formatDate(candidate.end_date)}`
-                      : 'Not specified'
-                    }
-                  </p>
-                </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-600">Phone</p>
+                      <p className="font-medium text-gray-900">{candidate.phone || 'Not provided'}</p>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Salary Range</label>
-                  <p className="text-gray-900">
-                    {candidate.min_salary || candidate.max_salary
-                      ? `${formatSalary(candidate.min_salary)} - ${formatSalary(candidate.max_salary)}`
-                      : 'Not specified'
-                    }
-                  </p>
-                </div>
+                  <div className="flex items-center gap-3">
+                    <Linkedin className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-600">LinkedIn</p>
+                      {candidate.linkedin ? (
+                        <a 
+                          href={candidate.linkedin} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Profile
+                        </a>
+                      ) : (
+                        <p className="font-medium text-gray-900">Not provided</p>
+                      )}
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Interest Level</label>
-                  <p className="text-gray-900">
-                    {candidate.interest_level 
-                      ? `${candidate.interest_level}/5`
-                      : 'Not specified'
-                    }
-                  </p>
-                </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-600">Applied Date</p>
+                      <p className="font-medium text-gray-900">{formatDate(candidate.created_at)}</p>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">AI Summary</label>
-                  {candidate.summary_text ? (
-                    <p className="text-gray-700">{candidate.summary_text}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-gray-500 italic">No AI summary generated yet</p>
-                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
-                        Upload Chat Transcript
-                      </button>
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-600">Job Position</p>
+                      <p className="font-medium text-gray-900">
+                        {(candidate as Candidate & { jobs?: { title: string } }).jobs?.title || 'No job assigned'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Summary Display */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  AI Insights
+                </h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Availability</label>
+                    <p className="text-gray-900">
+                      {candidate.start_date || candidate.end_date 
+                        ? `${formatDate(candidate.start_date)} - ${formatDate(candidate.end_date)}`
+                        : 'Not specified'
+                      }
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Salary Range</label>
+                    <p className="text-gray-900">
+                      {candidate.min_salary || candidate.max_salary
+                        ? `${formatSalary(candidate.min_salary)} - ${formatSalary(candidate.max_salary)}`
+                        : 'Not specified'
+                      }
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Interest Level</label>
+                    <p className="text-gray-900">
+                      {candidate.interest_level 
+                        ? `${candidate.interest_level}/5`
+                        : 'Not specified'
+                      }
+                    </p>
+                  </div>
+
+                  {candidate.summary_text && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">AI Summary</label>
+                      <p className="text-gray-700 text-sm leading-relaxed">{candidate.summary_text}</p>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Right Column - Resume and AI Chat Summarizer */}
+            <div className="xl:col-span-2 space-y-8">
+              {/* Resume Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  Resume
+                </h2>
+                
+                {candidate.resume_url ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-600">Resume file uploaded</p>
+                      <a 
+                        href={candidate.resume_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                      >
+                        Download PDF
+                      </a>
+                    </div>
+                    
+                    <div className="border border-gray-300 rounded-lg overflow-hidden">
+                      <iframe
+                        src={candidate.resume_url}
+                        className="w-full h-96"
+                        title="Resume Preview"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No resume uploaded</p>
+                )}
+              </div>
+
+              {/* AI Chat Summarizer - Prominent Position */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <ChatSummarizer 
+                  candidateId={id as string} 
+                  onSuccess={fetchCandidate}
+                />
+              </div>
+
+              {/* Cover Letter Section */}
+              {candidate.cover_letter && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                    Cover Letter
+                  </h2>
+                  <div className="prose max-w-none">
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{candidate.cover_letter}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
