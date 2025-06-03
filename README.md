@@ -2,6 +2,8 @@
 
 > An AI-powered recruitment platform that streamlines the hiring process with intelligent candidate matching, bias detection, and automated interview summaries.
 
+
+
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)
@@ -10,6 +12,8 @@
 ## 📋 Overview
 
 KazeHire AI revolutionizes recruitment by combining traditional hiring workflows with cutting-edge AI technology. Built for HR professionals and interviewers, it offers intelligent resume matching, automated candidate summarization, and bias detection to make hiring more efficient and fair.
+
+![KazeHireAI UI](image.png)
 
 
 ## ✨ Core Features

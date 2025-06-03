@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import JobViewModal from '../../components/jobs/JobViewModal';
+import JobEditModal from '../../components/jobs/JobEditModal';
 import { 
   Plus, 
   Search, 
@@ -25,6 +27,11 @@ export default function Jobs() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'All'>('All');
+  
+  // Modal states
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   // Fetch jobs using React Query
   const { data: jobsResponse, isLoading, error, refetch } = useQuery({
@@ -58,6 +65,16 @@ export default function Jobs() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleViewJob = (job: Job) => {
+    setSelectedJob(job);
+    setViewModalOpen(true);
+  };
+
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(job);
+    setEditModalOpen(true);
   };
 
   if (error) {
@@ -182,14 +199,14 @@ export default function Jobs() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => router.push(`/jobs/${job.id}`)}
+                                onClick={() => handleViewJob(job)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => router.push(`/jobs/${job.id}/edit`)}
+                                onClick={() => handleEditJob(job)}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -212,6 +229,20 @@ export default function Jobs() {
           </Card>
         </div>
       </div>
+      {selectedJob && (
+        <JobViewModal
+          job={selectedJob}
+          open={viewModalOpen}
+          onOpenChange={setViewModalOpen}
+        />
+      )}
+      {selectedJob && (
+        <JobEditModal
+          job={selectedJob}
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+        />
+      )}
     </ProtectedRoute>
   );
 } 
