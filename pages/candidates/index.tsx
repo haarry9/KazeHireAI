@@ -2,15 +2,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import { Candidate } from '@/lib/supabase';
-import Link from 'next/link';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
+import CandidateDrawer from '../../components/candidates/CandidateDrawer';
+import CreateCandidateModal from '../../components/candidates/CreateCandidateModal';
 
 export default function Candidates() {
   const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Drawer state
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCandidates();
@@ -54,6 +62,20 @@ export default function Candidates() {
     }
   };
 
+  const handleViewProfile = (candidateId: string) => {
+    setSelectedCandidateId(candidateId);
+    setDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedCandidateId(null);
+  };
+
+  const handleCandidateCreated = () => {
+    fetchCandidates(); // Refresh the list
+  };
+
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['HR']}>
@@ -78,11 +100,12 @@ export default function Candidates() {
               <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
               <p className="text-gray-600 mt-2">Manage candidate applications and profiles</p>
             </div>
-            <Link href="/candidates/create">
-              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                Add Candidate
-              </button>
-            </Link>
+            <button 
+              onClick={() => setModalOpen(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Add Candidate
+            </button>
           </div>
 
           {error && (
@@ -125,11 +148,12 @@ export default function Candidates() {
                             {(candidate as Candidate & { jobs?: { title: string } }).jobs?.title || 'No job assigned'}
                           </td>
                           <td className="py-3 px-4">
-                            <Link href={`/candidates/${candidate.id}`}>
-                              <button className="text-blue-600 hover:text-blue-800 font-medium">
-                                View Profile
-                              </button>
-                            </Link>
+                            <button 
+                              onClick={() => handleViewProfile(candidate.id.toString())}
+                              className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                            >
+                              View Profile
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -140,6 +164,20 @@ export default function Candidates() {
             </div>
           </div>
         </div>
+
+        {/* Candidate Profile Drawer */}
+        <CandidateDrawer
+          candidateId={selectedCandidateId}
+          open={drawerOpen}
+          onOpenChange={handleCloseDrawer}
+        />
+
+        {/* Create Candidate Modal */}
+        <CreateCandidateModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          onCandidateCreated={handleCandidateCreated}
+        />
       </div>
     </ProtectedRoute>
   );

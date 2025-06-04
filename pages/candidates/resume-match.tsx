@@ -176,7 +176,11 @@ export default function ResumeMatch() {
                   setMatchResults([]); // Clear previous results
                   setTotalResumesProcessed(0);
                 }}
-                className="px-6 py-2"
+                className={`px-6 py-2 transition-all duration-200 ${
+                  activeMode === 'existing' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                }`}
                 disabled={isLoading}
               >
                 Existing Pool
@@ -188,7 +192,11 @@ export default function ResumeMatch() {
                   setMatchResults([]); // Clear previous results
                   setTotalResumesProcessed(0);
                 }}
-                className="px-6 py-2"
+                className={`px-6 py-2 transition-all duration-200 ${
+                  activeMode === 'manual' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                }`}
                 disabled={isLoading}
               >
                 Manual Upload
