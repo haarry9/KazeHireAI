@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase, getUserProfile, User } from '../lib/supabase';
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else {
           setUser(null);
+          // Clear all cached data when user logs out
+          queryClient.clear();
         }
         
         setLoading(false);
@@ -63,10 +67,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     try {
+      // Clear all cached data before signing out
+      queryClient.clear();
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Error signing out:', error);

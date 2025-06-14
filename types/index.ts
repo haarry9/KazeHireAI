@@ -54,6 +54,7 @@ export interface ResumeMatchResult {
   fit_score: number;
   strengths: string[];
   concerns: string[];
+  technical_skills: string[];
   reasoning: string;
 }
 

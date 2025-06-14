@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Star, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Star, AlertTriangle, CheckCircle, Code } from 'lucide-react';
 import { ResumeMatchResult } from '../../types';
 
 interface ResumeMatchResultsProps {
@@ -98,6 +98,23 @@ export default function ResumeMatchResults({
                   </div>
                 </div>
 
+                {/* Technical Skills */}
+                {candidate.technical_skills && candidate.technical_skills.length > 0 && (
+                  <div className="mb-3">
+                    <h4 className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                      <Code className="w-3 h-3 text-blue-500" />
+                      Technical Skills
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {candidate.technical_skills.map((skill, idx) => (
+                        <Badge key={idx} variant="secondary" className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Strengths */}
                 {candidate.strengths && candidate.strengths.length > 0 && (
                   <div className="mb-3">
@@ -115,22 +132,26 @@ export default function ResumeMatchResults({
                   </div>
                 )}
 
-                {/* Concerns */}
-                {candidate.concerns && candidate.concerns.length > 0 && (
-                  <div className="mb-3">
-                    <h4 className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3 text-yellow-500" />
-                      Areas for Consideration
-                    </h4>
-                    <div className="flex flex-wrap gap-1">
-                      {candidate.concerns.map((concern, idx) => (
+                {/* Concerns - Always show section, with fallback if empty */}
+                <div className="mb-3">
+                  <h4 className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-yellow-500" />
+                    Areas for Consideration
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    {candidate.concerns && candidate.concerns.length > 0 ? (
+                      candidate.concerns.map((concern, idx) => (
                         <Badge key={idx} variant="outline" className="border-yellow-200 text-yellow-700 text-xs px-2 py-0.5">
                           {concern}
                         </Badge>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <Badge variant="outline" className="border-gray-200 text-gray-500 text-xs px-2 py-0.5">
+                        No specific concerns identified
+                      </Badge>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Reasoning */}
                 {candidate.reasoning && (

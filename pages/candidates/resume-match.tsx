@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
@@ -12,6 +12,7 @@ import { ResumeMatchResult } from '../../types';
 import { toast } from 'sonner';
 
 export default function ResumeMatch() {
+  const queryClient = useQueryClient();
   const [activeMode, setActiveMode] = useState<'existing' | 'manual'>('existing');
   
   // Existing pool state
@@ -21,9 +22,32 @@ export default function ResumeMatch() {
   const [jobDescription, setJobDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
-  // Results state
-  const [matchResults, setMatchResults] = useState<ResumeMatchResult[]>([]);
-  const [totalResumesProcessed, setTotalResumesProcessed] = useState<number>(0);
+  // Get cached resume match results
+  const cachedResults = queryClient.getQueryData<{
+    results: ResumeMatchResult[];
+    totalResumesProcessed: number;
+    mode: 'existing' | 'manual';
+    timestamp: number;
+  }>(['resumeMatchResults']);
+
+  // Use cached results if available, otherwise empty
+  const matchResults = cachedResults?.results || [];
+  const totalResumesProcessed = cachedResults?.totalResumesProcessed || 0;
+
+  // Function to cache results
+  const cacheResults = (results: ResumeMatchResult[], total: number, mode: 'existing' | 'manual') => {
+    queryClient.setQueryData(['resumeMatchResults'], {
+      results,
+      totalResumesProcessed: total,
+      mode,
+      timestamp: Date.now()
+    });
+  };
+
+  // Function to clear cached results
+  const clearCachedResults = () => {
+    queryClient.removeQueries({ queryKey: ['resumeMatchResults'] });
+  };
 
   // Fetch jobs for the dropdown
   const { data: jobsResponse, isLoading: isLoadingJobs, error: jobsError } = useQuery({
@@ -40,9 +64,10 @@ export default function ResumeMatch() {
       resumeMatchAPI.existingPool(data.job_id),
     onSuccess: (response) => {
       if (response.success) {
-        setMatchResults(response.top_candidates || []);
-        setTotalResumesProcessed(response.total_resumes_processed || 0);
-        toast.success(`Resume matching completed! Processed ${response.total_resumes_processed} resumes.`);
+        const results = response.top_candidates || [];
+        const total = response.total_resumes_processed || 0;
+        cacheResults(results, total, 'existing');
+        toast.success(`Resume matching completed! Processed ${total} resumes.`);
       } else {
         toast.error(response.error || 'Failed to match resumes');
       }
@@ -58,9 +83,10 @@ export default function ResumeMatch() {
     mutationFn: (formData: FormData) => resumeMatchAPI.manualUpload(formData),
     onSuccess: (response) => {
       if (response.success) {
-        setMatchResults(response.top_candidates || []);
-        setTotalResumesProcessed(response.files_processed || 0);
-        toast.success(`Successfully matched ${response.files_processed} resumes!`);
+        const results = response.top_candidates || [];
+        const total = response.files_processed || 0;
+        cacheResults(results, total, 'manual');
+        toast.success(`Successfully matched ${total} resumes!`);
       } else {
         toast.error(response.error || 'Failed to match resumes');
       }
@@ -77,6 +103,8 @@ export default function ResumeMatch() {
       return;
     }
 
+    // Clear previous results before running new match
+    clearCachedResults();
     existingPoolMutation.mutate({
       job_id: selectedJobId
     });
@@ -97,6 +125,9 @@ export default function ResumeMatch() {
       toast.error('Minimum 2 resume files required');
       return;
     }
+
+    // Clear previous results before running new match
+    clearCachedResults();
 
     // Create FormData
     const formData = new FormData();
@@ -173,8 +204,7 @@ export default function ResumeMatch() {
                 variant={activeMode === 'existing' ? 'default' : 'ghost'}
                 onClick={() => {
                   setActiveMode('existing');
-                  setMatchResults([]); // Clear previous results
-                  setTotalResumesProcessed(0);
+                  // Don't clear results when switching modes - keep cached results
                 }}
                 className={`px-6 py-2 transition-all duration-200 ${
                   activeMode === 'existing' 
@@ -189,8 +219,7 @@ export default function ResumeMatch() {
                 variant={activeMode === 'manual' ? 'default' : 'ghost'}
                 onClick={() => {
                   setActiveMode('manual');
-                  setMatchResults([]); // Clear previous results
-                  setTotalResumesProcessed(0);
+                  // Don't clear results when switching modes - keep cached results
                 }}
                 className={`px-6 py-2 transition-all duration-200 ${
                   activeMode === 'manual' 
@@ -360,6 +389,28 @@ export default function ResumeMatch() {
 
           {/* Match Results Section */}
           <div className="max-w-4xl mx-auto">
+            {/* Add Clear Results button if there are cached results */}
+            {matchResults.length > 0 && (
+              <div className="mb-4 flex justify-between items-center">
+                <div className="text-sm text-gray-500">
+                  {cachedResults?.timestamp && (
+                    <span>
+                      Results from {new Date(cachedResults.timestamp).toLocaleString()} 
+                      {cachedResults.mode && ` (${cachedResults.mode === 'existing' ? 'Existing Pool' : 'Manual Upload'})`}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={clearCachedResults}
+                  disabled={isLoading}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Clear Results
+                </Button>
+              </div>
+            )}
+            
             <ResumeMatchResults 
               results={matchResults}
               isLoading={isLoading}

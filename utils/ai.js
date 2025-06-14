@@ -59,6 +59,25 @@ export async function callGeminiForResumeMatch(prompt, images = []) {
       throw new Error('Invalid response structure from AI');
     }
 
+    // Validate each candidate has required fields including technical_skills
+    for (let i = 0; i < parsedResponse.top_candidates.length; i++) {
+      const candidate = parsedResponse.top_candidates[i];
+      if (!candidate.candidate_id || !candidate.candidate_name || !candidate.fit_score) {
+        console.error(`Invalid candidate structure at index ${i}:`, candidate);
+        throw new Error(`Invalid candidate structure from AI at index ${i}`);
+      }
+      
+      // Ensure arrays exist and technical_skills is present
+      if (!Array.isArray(candidate.strengths)) candidate.strengths = [];
+      if (!Array.isArray(candidate.concerns)) candidate.concerns = [];
+      if (!Array.isArray(candidate.technical_skills)) candidate.technical_skills = [];
+      
+      // Warn if concerns is empty (since we specifically requested concerns for all candidates)
+      if (candidate.concerns.length === 0) {
+        console.warn(`Candidate ${candidate.candidate_name} has no concerns listed - AI may not have followed instructions properly`);
+      }
+    }
+
     return parsedResponse;
   } catch (error) {
     console.error('Gemini AI call failed:', error);
@@ -116,6 +135,25 @@ export async function callGeminiWithText(prompt) {
     if (!parsedResponse.top_candidates || !Array.isArray(parsedResponse.top_candidates)) {
       console.error('Invalid response structure:', parsedResponse);
       throw new Error('Invalid response structure from AI');
+    }
+
+    // Validate each candidate has required fields including technical_skills
+    for (let i = 0; i < parsedResponse.top_candidates.length; i++) {
+      const candidate = parsedResponse.top_candidates[i];
+      if (!candidate.candidate_id || !candidate.candidate_name || !candidate.fit_score) {
+        console.error(`Invalid candidate structure at index ${i}:`, candidate);
+        throw new Error(`Invalid candidate structure from AI at index ${i}`);
+      }
+      
+      // Ensure arrays exist and technical_skills is present
+      if (!Array.isArray(candidate.strengths)) candidate.strengths = [];
+      if (!Array.isArray(candidate.concerns)) candidate.concerns = [];
+      if (!Array.isArray(candidate.technical_skills)) candidate.technical_skills = [];
+      
+      // Warn if concerns is empty (since we specifically requested concerns for all candidates)
+      if (candidate.concerns.length === 0) {
+        console.warn(`Candidate ${candidate.candidate_name} has no concerns listed - AI may not have followed instructions properly`);
+      }
     }
 
     return parsedResponse;
@@ -177,6 +215,25 @@ export async function callGeminiForTextResumeMatch(prompt) {
       throw new Error('Invalid response structure from AI');
     }
 
+    // Validate each candidate has required fields including technical_skills
+    for (let i = 0; i < parsedResponse.top_candidates.length; i++) {
+      const candidate = parsedResponse.top_candidates[i];
+      if (!candidate.candidate_id || !candidate.candidate_name || !candidate.fit_score) {
+        console.error(`Invalid candidate structure at index ${i}:`, candidate);
+        throw new Error(`Invalid candidate structure from AI at index ${i}`);
+      }
+      
+      // Ensure arrays exist and technical_skills is present
+      if (!Array.isArray(candidate.strengths)) candidate.strengths = [];
+      if (!Array.isArray(candidate.concerns)) candidate.concerns = [];
+      if (!Array.isArray(candidate.technical_skills)) candidate.technical_skills = [];
+      
+      // Warn if concerns is empty (since we specifically requested concerns for all candidates)
+      if (candidate.concerns.length === 0) {
+        console.warn(`Candidate ${candidate.candidate_name} has no concerns listed - AI may not have followed instructions properly`);
+      }
+    }
+
     return parsedResponse;
   } catch (error) {
     console.error('Gemini AI call failed:', error);
@@ -209,6 +266,9 @@ Instructions:
 2. Rank candidates based on their fit for the job requirements
 3. Provide exactly the top 5 candidates (or all if fewer than 5)
 4. Use the exact Candidate IDs provided above in your response
+5. For EVERY candidate, provide at least 1-2 concerns (even if minor) - do NOT leave concerns empty
+6. Extract technical skills separately from general strengths
+7. Be specific and detailed in your analysis
 
 Respond with ONLY this JSON structure:
 {
@@ -217,12 +277,19 @@ Respond with ONLY this JSON structure:
       "candidate_id": "string",
       "candidate_name": "string", 
       "fit_score": number (1-10),
-      "strengths": ["strength1", "strength2", "strength3"],
-      "concerns": ["concern1", "concern2"] or [],
-      "reasoning": "1-2 sentence explanation of ranking"
+      "strengths": ["general strength1", "general strength2", "general strength3"],
+      "concerns": ["concern1", "concern2", "concern3"],
+      "technical_skills": ["technical skill1", "technical skill2", "technical skill3"],
+      "reasoning": "2-3 sentence explanation of ranking and fit assessment"
     }
   ]
 }
+
+IMPORTANT REQUIREMENTS:
+- Every candidate MUST have at least 1-2 concerns listed (never empty array)
+- Technical skills should be programming languages, frameworks, tools, technologies only
+- Strengths should be soft skills, experience level, domain knowledge, etc.
+- Be thorough in analysis - provide meaningful insights
 
 Order candidates from best to worst fit. Include up to 5 candidates.`;
 
@@ -260,6 +327,9 @@ Instructions:
 2. Rank candidates based on their fit for the job requirements
 3. Provide exactly the top 5 candidates (or all if fewer than 5)
 4. Use the exact Candidate IDs provided above in your response
+5. For EVERY candidate, provide at least 1-2 concerns (even if minor) - do NOT leave concerns empty
+6. Extract technical skills separately from general strengths
+7. Be specific and detailed in your analysis
 
 Respond with ONLY this JSON structure:
 {
@@ -268,12 +338,19 @@ Respond with ONLY this JSON structure:
       "candidate_id": "string",
       "candidate_name": "string", 
       "fit_score": number (1-10),
-      "strengths": ["strength1", "strength2", "strength3"],
-      "concerns": ["concern1", "concern2"] or [],
-      "reasoning": "1-2 sentence explanation of ranking"
+      "strengths": ["general strength1", "general strength2", "general strength3"],
+      "concerns": ["concern1", "concern2", "concern3"],
+      "technical_skills": ["technical skill1", "technical skill2", "technical skill3"],
+      "reasoning": "2-3 sentence explanation of ranking and fit assessment"
     }
   ]
 }
+
+IMPORTANT REQUIREMENTS:
+- Every candidate MUST have at least 1-2 concerns listed (never empty array)
+- Technical skills should be programming languages, frameworks, tools, technologies only
+- Strengths should be soft skills, experience level, domain knowledge, etc.
+- Be thorough in analysis - provide meaningful insights
 
 Order candidates from best to worst fit. Include up to 5 candidates.`;
 
@@ -308,6 +385,9 @@ Instructions:
 3. If there are 5 or fewer candidates, return ALL of them sorted by fit score
 4. If there are more than 5 candidates, return only the TOP 5
 5. Use the exact Candidate IDs provided above in your response
+6. For EVERY candidate, provide at least 1-2 concerns (even if minor) - do NOT leave concerns empty
+7. Extract technical skills separately from general strengths
+8. Be specific and detailed in your analysis
 
 Respond with ONLY this JSON structure:
 {
@@ -316,12 +396,19 @@ Respond with ONLY this JSON structure:
       "candidate_id": "string",
       "candidate_name": "string",
       "fit_score": number (1-10),
-      "strengths": ["strength1", "strength2", "strength3"],
-      "concerns": ["concern1", "concern2"] or [],
-      "reasoning": "1-2 sentence explanation of ranking"
+      "strengths": ["general strength1", "general strength2", "general strength3"],
+      "concerns": ["concern1", "concern2", "concern3"],
+      "technical_skills": ["technical skill1", "technical skill2", "technical skill3"],
+      "reasoning": "2-3 sentence explanation of ranking and fit assessment"
     }
   ]
 }
+
+IMPORTANT REQUIREMENTS:
+- Every candidate MUST have at least 1-2 concerns listed (never empty array)
+- Technical skills should be programming languages, frameworks, tools, technologies only
+- Strengths should be soft skills, experience level, domain knowledge, etc.
+- Be thorough in analysis - provide meaningful insights
 
 Order candidates from best to worst fit. Return ${fileNames.length <= 5 ? 'ALL candidates' : 'top 5 candidates'}.`;
 }

@@ -70,6 +70,25 @@ export async function callOpenRouterForResumeMatch(prompt) {
       throw new Error('Invalid response structure from AI');
     }
 
+    // Validate each candidate has required fields including technical_skills
+    for (let i = 0; i < parsedResponse.top_candidates.length; i++) {
+      const candidate = parsedResponse.top_candidates[i];
+      if (!candidate.candidate_id || !candidate.candidate_name || !candidate.fit_score) {
+        console.error(`Invalid candidate structure at index ${i}:`, candidate);
+        throw new Error(`Invalid candidate structure from AI at index ${i}`);
+      }
+      
+      // Ensure arrays exist and technical_skills is present
+      if (!Array.isArray(candidate.strengths)) candidate.strengths = [];
+      if (!Array.isArray(candidate.concerns)) candidate.concerns = [];
+      if (!Array.isArray(candidate.technical_skills)) candidate.technical_skills = [];
+      
+      // Warn if concerns is empty (since we specifically requested concerns for all candidates)
+      if (candidate.concerns.length === 0) {
+        console.warn(`Candidate ${candidate.candidate_name} has no concerns listed - AI may not have followed instructions properly`);
+      }
+    }
+
     console.log(`OpenRouter processing successful: ${parsedResponse.top_candidates.length} candidates returned`);
     return parsedResponse;
 
