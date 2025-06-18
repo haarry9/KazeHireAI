@@ -78,7 +78,7 @@ async function callGeminiForChatSummary(transcript: string) {
     console.log('Gemini AI response received');
     
     // Extract text from response
-    let responseText = response.text;
+    let responseText = response.text || '';
     console.log('Response text:', responseText);
 
     // Clean up markdown code blocks if present

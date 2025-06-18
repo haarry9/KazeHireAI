@@ -33,7 +33,7 @@ export default function JobEditModal({ job, open, onOpenChange }: JobEditModalPr
 
   const updateJobMutation = useMutation({
     mutationFn: (data: { title: string; description: string; status: JobStatus }) => 
-      jobsAPI.update(job!.id, data),
+      jobsAPI.update(job!.id.toString(), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });

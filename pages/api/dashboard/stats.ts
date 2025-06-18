@@ -66,8 +66,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           .eq('status', 'Completed')
           .not('ai_summary', 'is', null);
 
-        const hireRate = completedInterviews > 0 
-          ? Math.round((interviewsWithFeedback?.length || 0) / completedInterviews * 100)
+        const hireRate = (completedInterviews || 0) > 0 
+          ? Math.round((interviewsWithFeedback?.length || 0) / (completedInterviews || 1) * 100)
           : 0;
 
         res.status(200).json({

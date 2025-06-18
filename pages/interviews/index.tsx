@@ -332,7 +332,7 @@ export default function InterviewManagement() {
   };
 
   const getFitScoreBadge = (score: number | null) => {
-    if (!score) return null;
+    if (!score) return undefined;
     
     const baseClasses = "px-2 py-1 rounded-full text-xs font-medium";
     if (score >= 4) {

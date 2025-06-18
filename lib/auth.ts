@@ -76,7 +76,7 @@ export const requireAuth = (
     const authResult = await withAuth(req, res, requiredRole);
     
     if ('error' in authResult) {
-      return res.status(authResult.status).json({ 
+      return res.status(authResult.status || 500).json({ 
         success: false, 
         error: authResult.error 
       });

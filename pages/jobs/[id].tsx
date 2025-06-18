@@ -29,7 +29,7 @@ export default function JobDetail() {
     retry: 1,
   });
 
-  const job: Job = jobResponse?.data;
+  const job: Job | undefined = jobResponse;
 
   const getStatusBadgeVariant = (status: JobStatus) => {
     switch (status) {

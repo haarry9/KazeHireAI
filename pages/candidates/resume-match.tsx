@@ -11,6 +11,14 @@ import { Job } from '../../lib/supabase';
 import { ResumeMatchResult } from '../../types';
 import { toast } from 'sonner';
 
+interface ResumeMatchResponse {
+  success: boolean;
+  top_candidates?: ResumeMatchResult[];
+  total_resumes_processed?: number;
+  files_processed?: number;
+  error?: string;
+}
+
 export default function ResumeMatch() {
   const queryClient = useQueryClient();
   const [activeMode, setActiveMode] = useState<'existing' | 'manual'>('existing');
@@ -56,13 +64,13 @@ export default function ResumeMatch() {
     retry: 1,
   });
 
-  const jobs = jobsResponse?.data || [];
+  const jobs = jobsResponse || [];
 
   // Existing pool mutation
   const existingPoolMutation = useMutation({
     mutationFn: (data: { job_id: string }) => 
-      resumeMatchAPI.existingPool(data.job_id),
-    onSuccess: (response) => {
+      resumeMatchAPI.existingPool(data.job_id) as Promise<ResumeMatchResponse>,
+    onSuccess: (response: ResumeMatchResponse) => {
       if (response.success) {
         const results = response.top_candidates || [];
         const total = response.total_resumes_processed || 0;
@@ -80,8 +88,8 @@ export default function ResumeMatch() {
 
   // Manual upload mutation
   const manualUploadMutation = useMutation({
-    mutationFn: (formData: FormData) => resumeMatchAPI.manualUpload(formData),
-    onSuccess: (response) => {
+    mutationFn: (formData: FormData) => resumeMatchAPI.manualUpload(formData) as Promise<ResumeMatchResponse>,
+    onSuccess: (response: ResumeMatchResponse) => {
       if (response.success) {
         const results = response.top_candidates || [];
         const total = response.files_processed || 0;

@@ -52,8 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('OpenRouter test failed:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
-      details: error.response?.data || null
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: (error as { response?: { data?: unknown } })?.response?.data || null
     });
   }
 } 

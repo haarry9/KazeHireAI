@@ -40,7 +40,7 @@ export default function Jobs() {
     retry: 1,
   });
 
-  const jobs = jobsResponse?.data || [];
+  const jobs = jobsResponse || [];
 
   // Filter jobs based on search and status
   const filteredJobs = jobs.filter((job: Job) => {

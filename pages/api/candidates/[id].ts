@@ -31,7 +31,7 @@ async function validateUser(req: NextApiRequest) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userValidation = await validateUser(req);
   if ('error' in userValidation) {
-    return res.status(userValidation.status).json({ success: false, error: userValidation.error });
+    return res.status(userValidation.status || 500).json({ success: false, error: userValidation.error });
   }
 
   const { user } = userValidation;

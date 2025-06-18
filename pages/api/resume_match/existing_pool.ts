@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { buildExistingPoolTextPrompt } from '../../../utils/ai';
 import { callOpenRouterForResumeMatch, logOpenRouterInteraction } from '../../../utils/openrouter';
 import { downloadAndExtractMultipleTexts } from '../../../utils/pdf-text-extractor';
+import { ResumeMatchResult } from '../../../types';
 
 // Simple auth validation function
 async function validateUser(req: NextApiRequest) {
@@ -118,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } catch (extractionError) {
       console.error('PDF text extraction failed:', extractionError);
-      await logOpenRouterInteraction('resume_match_existing_pool', 'PDF text extraction failed', null, 'Failure');
+      await logOpenRouterInteraction('resume_match_existing_pool', 'PDF text extraction failed', {}, 'Failure');
       return res.status(422).json({ success: false, error: 'Failed to extract text from resume files' });
     }
 
@@ -132,13 +133,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const prompt = buildExistingPoolTextPrompt(job, resumeTexts, comments);
 
     // Call OpenRouter AI with text-only processing
-    let aiResponse;
+    let aiResponse: { top_candidates: ResumeMatchResult[] };
     try {
-      aiResponse = await callOpenRouterForResumeMatch(prompt);
+      aiResponse = await callOpenRouterForResumeMatch(prompt) as { top_candidates: ResumeMatchResult[] };
       await logOpenRouterInteraction('resume_match_existing_pool', prompt, aiResponse, 'Success');
     } catch (aiError) {
       console.error('AI call failed:', aiError);
-      await logOpenRouterInteraction('resume_match_existing_pool', prompt, null, 'Failure');
+      await logOpenRouterInteraction('resume_match_existing_pool', prompt, {}, 'Failure');
       return res.status(422).json({ success: false, error: 'AI processing failed' });
     }
 

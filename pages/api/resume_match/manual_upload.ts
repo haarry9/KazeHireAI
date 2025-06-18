@@ -192,7 +192,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Call OpenRouter AI with text-only prompt
     let aiResponse: ManualUploadAIResponse;
     try {
-      aiResponse = await callOpenRouterForResumeMatch(prompt);
+      aiResponse = await callOpenRouterForResumeMatch(prompt) as ManualUploadAIResponse;
       await logOpenRouterInteraction('resume_match_manual_upload', prompt, aiResponse, 'Success');
     } catch (aiError) {
       console.error('AI call failed:', aiError);

@@ -14,8 +14,15 @@ import {
 import Link from 'next/link';
 import { apiCall } from '../../lib/api';
 
+interface DashboardStats {
+  totalJobs: number;
+  activeCandidates: number;
+  scheduledInterviews: number;
+  hireRate: number;
+}
+
 // Create API function for dashboard stats
-const fetchDashboardStats = async () => {
+const fetchDashboardStats = async (): Promise<{ data: DashboardStats }> => {
   return await apiCall('/api/dashboard/stats');
 };
 
@@ -27,7 +34,7 @@ export default function Dashboard() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const stats = statsResponse?.data || {
+  const stats: DashboardStats = statsResponse?.data || {
     totalJobs: 0,
     activeCandidates: 0,
     scheduledInterviews: 0,

@@ -79,7 +79,7 @@ async function callGeminiForBiasDetection(feedback: string) {
     console.log('Gemini AI response received');
     
     // Extract text from response - using .text property, not .text() method
-    let responseText = response.text;
+    let responseText = response.text || '';
     console.log('Response text:', responseText);
 
     // Clean up markdown code blocks if present
