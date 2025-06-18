@@ -20,6 +20,14 @@ interface EditJobFormData {
   status: JobStatus;
 }
 
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
+
 export default function EditJob() {
   const router = useRouter();
   const { id } = router.query;
@@ -62,8 +70,8 @@ export default function EditJob() {
       // Redirect to job detail page
       router.push(`/jobs/${id}`);
     },
-    onError: (error: Error) => {
-      const errorMessage = (error as any)?.response?.data?.error || error?.message || 'Failed to update job';
+    onError: (error: ApiError) => {
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update job';
       toast.error(errorMessage);
     }
   });

@@ -116,7 +116,7 @@ async function callGeminiForChatSummary(transcript: string) {
 }
 
 // Log AI interaction (optional)
-async function logAIInteraction(taskType: string, prompt: string, result: any, status: string) {
+async function logAIInteraction(taskType: string, prompt: string, result: ChatSummaryResult | null, status: string) {
   try {
     // For MVP, we'll just console log. In production, save to ai_logs table
     console.log('AI Interaction Log:', {

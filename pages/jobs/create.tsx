@@ -19,6 +19,14 @@ interface CreateJobFormData {
   status: JobStatus;
 }
 
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
+
 export default function CreateJob() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -47,7 +55,7 @@ export default function CreateJob() {
       // Redirect to jobs list
       router.push('/jobs');
     },
-    onError: (error: Error) => {
+    onError: (error: ApiError) => {
       console.error('Job creation error:', error);
       let errorMessage = 'Failed to create job';
       
@@ -55,8 +63,8 @@ export default function CreateJob() {
         errorMessage = 'Authentication failed. Please log in again.';
       } else if (error?.message?.includes('403')) {
         errorMessage = 'You do not have permission to create jobs.';
-      } else if ((error as any)?.response?.data?.error) {
-        errorMessage = (error as any).response.data.error;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
       } else if (error?.message) {
         errorMessage = error.message;
       }
