@@ -34,7 +34,7 @@ export default function Jobs() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   // Fetch jobs using React Query
-  const { data: jobsResponse, isLoading, error, refetch } = useQuery({
+  const { data: jobsResponse, isLoading, error } = useQuery({
     queryKey: ['jobs'],
     queryFn: jobsAPI.getAll,
     retry: 1,

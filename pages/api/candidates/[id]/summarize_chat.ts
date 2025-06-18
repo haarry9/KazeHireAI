@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../../../lib/supabase';
 import { GoogleGenAI } from '@google/genai';
+import { ChatSummaryResult, Candidate } from '../../../../types';
 
 // Simple auth validation function
 async function validateUser(req: NextApiRequest) {
@@ -91,9 +92,9 @@ async function callGeminiForChatSummary(transcript: string) {
     console.log('Cleaned response text:', responseText);
 
     // Parse JSON response
-    let parsedResponse;
+    let parsedResponse: ChatSummaryResult;
     try {
-      parsedResponse = JSON.parse(responseText);
+      parsedResponse = JSON.parse(responseText) as ChatSummaryResult;
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       console.error('Original response text:', response.text);
@@ -182,7 +183,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Prepare update data, ensuring proper data types
-    const updateData: any = {};
+    const updateData: Partial<Candidate> = {};
     
     if (aiResponse.start_date) {
       updateData.start_date = aiResponse.start_date;

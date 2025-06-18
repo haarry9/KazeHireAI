@@ -1,11 +1,12 @@
 import { supabase } from './supabase';
 import { API_ROUTES } from "./constants";
+import { Job, Interview } from '@/types';
 
 // Helper function for making API calls with authentication
-export const apiCall = async (
+export const apiCall = async <T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<any> => {
+): Promise<T> => {
   const url = endpoint.startsWith('http') ? endpoint : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${endpoint}`;
   
   // Get the current session token with retry
@@ -36,7 +37,6 @@ export const apiCall = async (
   // Handle Content-Type based on whether it's explicitly set
   const incomingHeaders = options.headers as Record<string, string> || {};
   const hasContentTypeSet = 'Content-Type' in incomingHeaders;
-  const isEmptyContentType = hasContentTypeSet && incomingHeaders['Content-Type'] === '';
   
   // Only set default Content-Type if not explicitly set and not empty string (FormData case)
   if (!hasContentTypeSet) {
@@ -73,7 +73,7 @@ export const apiCall = async (
     const response = await fetch(url, defaultOptions);
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({})) as { error?: string };
       console.error('API Error:', {
         status: response.status,
         statusText: response.statusText,
@@ -83,7 +83,7 @@ export const apiCall = async (
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
     
-    return await response.json();
+    return await response.json() as T;
   } catch (error) {
     console.error('API call error:', error);
     throw error;
@@ -92,13 +92,13 @@ export const apiCall = async (
 
 // Specific API functions
 export const jobsAPI = {
-  getAll: () => apiCall(API_ROUTES.JOBS),
-  create: (jobData: any) => apiCall(API_ROUTES.JOBS, {
+  getAll: () => apiCall<Job[]>(API_ROUTES.JOBS),
+  create: (jobData: Partial<Job>) => apiCall<Job>(API_ROUTES.JOBS, {
     method: 'POST',
     body: JSON.stringify(jobData),
   }),
-  getById: (id: string) => apiCall(`${API_ROUTES.JOBS}/${id}`),
-  update: (id: string, jobData: any) => apiCall(`${API_ROUTES.JOBS}/${id}`, {
+  getById: (id: string) => apiCall<Job>(`${API_ROUTES.JOBS}/${id}`),
+  update: (id: string, jobData: Partial<Job>) => apiCall<Job>(`${API_ROUTES.JOBS}/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(jobData),
   }),
@@ -121,13 +121,13 @@ export const candidatesAPI = {
 };
 
 export const interviewsAPI = {
-  getAssigned: () => apiCall(`${API_ROUTES.INTERVIEWS}/assigned`),
-  schedule: (interviewData: any) => apiCall(`${API_ROUTES.INTERVIEWS}/schedule`, {
+  getAssigned: () => apiCall<Interview[]>(`${API_ROUTES.INTERVIEWS}/assigned`),
+  schedule: (interviewData: Partial<Interview>) => apiCall<Interview>(`${API_ROUTES.INTERVIEWS}/schedule`, {
     method: 'POST',
     body: JSON.stringify(interviewData),
   }),
-  getById: (id: string) => apiCall(`${API_ROUTES.INTERVIEWS}/${id}`),
-  submitFeedback: (id: string, feedbackData: any) => apiCall(`${API_ROUTES.INTERVIEWS}/${id}/feedback`, {
+  getById: (id: string) => apiCall<Interview>(`${API_ROUTES.INTERVIEWS}/${id}`),
+  submitFeedback: (id: string, feedbackData: { raw_feedback: string; status: Interview['status'] }) => apiCall<Interview>(`${API_ROUTES.INTERVIEWS}/${id}/feedback`, {
     method: 'POST',
     body: JSON.stringify(feedbackData),
   }),

@@ -7,7 +7,6 @@ import { Badge } from '../components/ui/badge';
 import { useAuth } from '../hooks/useAuth';
 import { 
   Search, 
-  Users, 
   MessageSquare, 
   BarChart3, 
   ArrowRight, 

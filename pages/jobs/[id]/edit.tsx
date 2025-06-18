@@ -29,7 +29,6 @@ export default function EditJob() {
     register, 
     handleSubmit, 
     formState: { errors },
-    reset,
     setValue
   } = useForm<EditJobFormData>();
 
@@ -55,7 +54,7 @@ export default function EditJob() {
   // Update job mutation
   const updateJobMutation = useMutation({
     mutationFn: (data: EditJobFormData) => jobsAPI.update(id as string, data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success('Job updated successfully!');
       // Invalidate job queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['job', id] });
@@ -63,8 +62,8 @@ export default function EditJob() {
       // Redirect to job detail page
       router.push(`/jobs/${id}`);
     },
-    onError: (error: any) => {
-      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update job';
+    onError: (error: Error) => {
+      const errorMessage = (error as any)?.response?.data?.error || error?.message || 'Failed to update job';
       toast.error(errorMessage);
     }
   });

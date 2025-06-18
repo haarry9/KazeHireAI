@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from '../../../lib/auth';
 import { supabase } from '../../../lib/supabase';
+import { Job } from '../../../types';
 
 export default requireAuth(async (req, res) => {
   const { id } = req.query;
@@ -89,7 +89,7 @@ export default requireAuth(async (req, res) => {
       const { status, title, description } = req.body;
 
       // Build update object with only provided fields
-      const updateData: any = {};
+      const updateData: Partial<Job> = {};
       
       if (status !== undefined) {
         const validStatuses = ['Active', 'Paused', 'Closed'];

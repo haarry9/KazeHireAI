@@ -26,7 +26,7 @@ export default function Navbar() {
       await signOut();
       toast.success('Signed out successfully');
       router.push('/');
-    } catch (error) {
+    } catch {
       toast.error('Error signing out');
     }
   };

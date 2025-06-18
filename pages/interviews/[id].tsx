@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { Eye, Diamond, User, Calendar, Star } from 'lucide-react';
+import { Eye, Diamond, User } from 'lucide-react';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
 import { supabase } from '../../lib/supabase';
@@ -93,14 +93,7 @@ export default function InterviewDetails() {
   const router = useRouter();
   const { id } = router.query;
 
-  useEffect(() => {
-    if (id) {
-      fetchInterview();
-      fetchUserRole();
-    }
-  }, [id]);
-
-  const fetchUserRole = async () => {
+  const fetchUserRole = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -118,9 +111,10 @@ export default function InterviewDetails() {
     } catch (error) {
       console.error('Error fetching user role:', error);
     }
-  };
+  }, []);
 
-  const fetchInterview = async () => {
+  const fetchInterview = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -185,7 +179,12 @@ export default function InterviewDetails() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchInterview();
+    fetchUserRole();
+  }, [fetchInterview, fetchUserRole]);
 
   const handleGenerateSummary = async () => {
     if (!feedbackForm.feedback.trim()) {

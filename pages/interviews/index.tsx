@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Calendar, Clock, User, FileText, CheckCircle, ChevronRight, Eye, Diamond } from 'lucide-react';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
@@ -154,7 +154,7 @@ function BiasDetectionModal({ isOpen, onClose, feedback, flags, loading }: BiasD
                           <div key={index} className="bg-white rounded-md p-3 border border-red-200">
                             <div className="flex items-start space-x-2">
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                "{flag.term}"
+                                &quot;{flag.term}&quot;
                               </span>
                             </div>
                             <p className="text-sm text-red-700 mt-2">{flag.justification}</p>
@@ -221,11 +221,7 @@ export default function InterviewManagement() {
   const [biasResults, setBiasResults] = useState<{ feedback: string; flags: BiasFlag[] }>({ feedback: '', flags: [] });
   const router = useRouter();
 
-  useEffect(() => {
-    fetchInterviews();
-  }, []);
-
-  const fetchInterviews = async () => {
+  const fetchInterviews = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -254,7 +250,11 @@ export default function InterviewManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchInterviews();
+  }, [fetchInterviews]);
 
   const handleBiasCheck = async (interviewId: number) => {
     try {

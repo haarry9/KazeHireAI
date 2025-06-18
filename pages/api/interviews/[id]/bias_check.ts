@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../../../lib/supabase';
 import { GoogleGenAI } from '@google/genai';
+import { BiasCheckResult } from '../../../../types';
 
 // Simple auth validation function
 async function validateUser(req: NextApiRequest) {
@@ -92,9 +93,9 @@ async function callGeminiForBiasDetection(feedback: string) {
     console.log('Cleaned response text:', responseText);
 
     // Parse JSON response
-    let parsedResponse;
+    let parsedResponse: BiasCheckResult;
     try {
-      parsedResponse = JSON.parse(responseText);
+      parsedResponse = JSON.parse(responseText) as BiasCheckResult;
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       console.error('Original response text:', response.text);
@@ -122,7 +123,7 @@ async function callGeminiForBiasDetection(feedback: string) {
 }
 
 // Log AI interaction (optional)
-async function logAIInteraction(taskType: string, prompt: string, result: any, status: string) {
+async function logAIInteraction(taskType: string, prompt: string, result: BiasCheckResult | null, status: string) {
   try {
     // For MVP, we'll just console log. In production, save to ai_logs table
     console.log('AI Interaction Log:', {

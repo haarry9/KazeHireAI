@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import { Job } from '@/lib/supabase';
@@ -22,11 +22,7 @@ export default function CreateCandidate() {
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -58,7 +54,11 @@ export default function CreateCandidate() {
       console.error('Error fetching jobs:', error);
       setJobs([]);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

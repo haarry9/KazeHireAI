@@ -10,8 +10,6 @@ import {
   TrendingUp,
   Plus,
   Search,
-  UserCheck,
-  Building
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiCall } from '../../lib/api';

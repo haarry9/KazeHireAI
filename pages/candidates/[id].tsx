@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import { Candidate } from '@/lib/supabase';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
 import ChatSummarizer from '../../components/candidates/ChatSummarizer';
-import { User, Mail, Phone, Linkedin, Calendar, DollarSign, Star, FileText, ArrowLeft } from 'lucide-react';
+import { User, Mail, Phone, Linkedin, Calendar, Star, FileText, ArrowLeft } from 'lucide-react';
 
 export default function CandidateProfile() {
   const router = useRouter();
@@ -15,13 +15,8 @@ export default function CandidateProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchCandidate();
-    }
-  }, [id]);
-
-  const fetchCandidate = async () => {
+  const fetchCandidate = useCallback(async () => {
+    if (!id) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -56,7 +51,11 @@ export default function CandidateProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchCandidate();
+  }, [fetchCandidate]);
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Not specified';

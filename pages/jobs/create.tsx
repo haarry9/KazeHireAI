@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import ProtectedRoute from '../../components/shared/ProtectedRoute';
 import Navbar from '../../components/shared/Navbar';
 import { Button } from '../../components/ui/button';
@@ -29,7 +27,6 @@ export default function CreateJob() {
     register, 
     handleSubmit, 
     formState: { errors },
-    reset,
     watch
   } = useForm<CreateJobFormData>({
     defaultValues: {
@@ -43,14 +40,14 @@ export default function CreateJob() {
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: jobsAPI.create,
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success('Job created successfully!');
       // Invalidate jobs query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       // Redirect to jobs list
       router.push('/jobs');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Job creation error:', error);
       let errorMessage = 'Failed to create job';
       
@@ -58,8 +55,8 @@ export default function CreateJob() {
         errorMessage = 'Authentication failed. Please log in again.';
       } else if (error?.message?.includes('403')) {
         errorMessage = 'You do not have permission to create jobs.';
-      } else if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
+      } else if ((error as any)?.response?.data?.error) {
+        errorMessage = (error as any).response.data.error;
       } else if (error?.message) {
         errorMessage = error.message;
       }

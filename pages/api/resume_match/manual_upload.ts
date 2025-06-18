@@ -4,6 +4,7 @@ import fs from 'fs';
 import { supabase } from '../../../lib/supabase';
 import { callOpenRouterForResumeMatch, logOpenRouterInteraction } from '../../../utils/openrouter';
 import { extractTextFromPdf } from '../../../utils/pdf-text-extractor';
+import { ResumeMatchResult } from '../../../types';
 
 // Simple auth validation function
 async function validateUser(req: NextApiRequest) {
@@ -87,6 +88,10 @@ Respond with ONLY this JSON structure:
 Order candidates from best to worst fit. Return up to ${maxCandidates} candidates.`;
 }
 
+interface ManualUploadAIResponse {
+  top_candidates: ResumeMatchResult[];
+}
+
 // Disable Next.js built-in body parser for file uploads
 export const config = {
   api: {
@@ -117,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const form = formidable({
       maxFiles: 10, // Allow up to 10 files for flexibility
       maxFileSize: 10 * 1024 * 1024, // 10MB per file
-      filter: ({ name, originalFilename, mimetype }) => {
+      filter: ({ name, mimetype }) => {
         // Only accept PDF files for resumes
         return name === 'resumes' && mimetype === 'application/pdf';
       },
@@ -185,13 +190,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const prompt = buildManualUploadPrompt(jobDescription.trim(), resumeTexts);
 
     // Call OpenRouter AI with text-only prompt
-    let aiResponse: any;
+    let aiResponse: ManualUploadAIResponse;
     try {
       aiResponse = await callOpenRouterForResumeMatch(prompt);
       await logOpenRouterInteraction('resume_match_manual_upload', prompt, aiResponse, 'Success');
     } catch (aiError) {
       console.error('AI call failed:', aiError);
-      await logOpenRouterInteraction('resume_match_manual_upload', prompt, aiError || {}, 'Failure');
+      await logOpenRouterInteraction('resume_match_manual_upload', prompt, (aiError as Error).message || {}, 'Failure');
       return res.status(422).json({ success: false, error: 'AI processing failed' });
     }
 

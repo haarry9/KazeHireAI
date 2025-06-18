@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Candidate } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import ChatSummarizer from './ChatSummarizer';
-import { User, Mail, Phone, Linkedin, Calendar, DollarSign, Star, FileText, X } from 'lucide-react';
+import { User, Mail, Phone, Linkedin, Calendar, Star, FileText, X } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -23,13 +23,7 @@ export default function CandidateDrawer({ candidateId, open, onOpenChange }: Can
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (candidateId && open) {
-      fetchCandidate();
-    }
-  }, [candidateId, open]);
-
-  const fetchCandidate = async () => {
+  const fetchCandidate = useCallback(async () => {
     if (!candidateId) return;
     
     setLoading(true);
@@ -65,7 +59,13 @@ export default function CandidateDrawer({ candidateId, open, onOpenChange }: Can
     } finally {
       setLoading(false);
     }
-  };
+  }, [candidateId]);
+
+  useEffect(() => {
+    if (open) {
+      fetchCandidate();
+    }
+  }, [open, fetchCandidate]);
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Not specified';

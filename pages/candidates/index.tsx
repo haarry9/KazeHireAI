@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import { Candidate } from '@/lib/supabase';
@@ -20,11 +20,7 @@ export default function Candidates() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
-
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -60,7 +56,11 @@ export default function Candidates() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
 
   const handleViewProfile = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
