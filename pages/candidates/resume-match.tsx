@@ -64,7 +64,7 @@ export default function ResumeMatch() {
     retry: 1,
   });
 
-  const jobs = jobsResponse || [];
+  const jobs = jobsResponse?.data || [];
 
   // Existing pool mutation
   const existingPoolMutation = useMutation({
