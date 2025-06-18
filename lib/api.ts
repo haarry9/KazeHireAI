@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { API_ROUTES } from "./constants";
-import { Job, Interview } from '@/types';
+import { Job, Interview, ApiResponse } from '@/types';
 
 // Helper function for making API calls with authentication
 export const apiCall = async <T>(
@@ -92,13 +92,13 @@ export const apiCall = async <T>(
 
 // Specific API functions
 export const jobsAPI = {
-  getAll: () => apiCall<Job[]>(API_ROUTES.JOBS),
-  create: (jobData: Partial<Job>) => apiCall<Job>(API_ROUTES.JOBS, {
+  getAll: () => apiCall<ApiResponse<Job[]>>(API_ROUTES.JOBS),
+  create: (jobData: Partial<Job>) => apiCall<ApiResponse<Job>>(API_ROUTES.JOBS, {
     method: 'POST',
     body: JSON.stringify(jobData),
   }),
-  getById: (id: string) => apiCall<Job>(`${API_ROUTES.JOBS}/${id}`),
-  update: (id: string, jobData: Partial<Job>) => apiCall<Job>(`${API_ROUTES.JOBS}/${id}`, {
+  getById: (id: string) => apiCall<ApiResponse<Job>>(`${API_ROUTES.JOBS}/${id}`),
+  update: (id: string, jobData: Partial<Job>) => apiCall<ApiResponse<Job>>(`${API_ROUTES.JOBS}/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(jobData),
   }),

@@ -77,4 +77,12 @@ export interface BiasCheckResult {
 export interface InterviewSummaryResult {
   fit_score: number;
   summary: string;
+}
+
+// API Response Types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 } 

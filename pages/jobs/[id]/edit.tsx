@@ -48,7 +48,7 @@ export default function EditJob() {
     retry: 1,
   });
 
-  const job = jobResponse;
+  const job = jobResponse?.data;
 
   // Populate form with existing data
   useEffect(() => {
